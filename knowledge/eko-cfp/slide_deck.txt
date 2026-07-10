@@ -1,0 +1,419 @@
+# Slide Deck Outline -- Text Version for Graphical Conversion
+
+Format: [SLIDE N] Title
+Content: bullet points, quotes, or notes for each slide
+Notes: speaker notes or delivery cues
+
+---
+
+[SLIDE 1] Title Slide
+Content:
+- "The Human Is the Bottleneck"
+- "Building AI Security Agents in 10 Days"
+- Ignacio "Nacho" Randazzo
+- ekoparty 2025
+Notes: Wait for silence before starting. Let the title sit.
+
+---
+
+[SLIDE 2] Day 0 -- The Spark
+Content:
+- June 11: Tried Anthropic's new flagship model
+- June 12: US export ban. Everyone outside the US lost access.
+- My reaction: "How hard could it be to build this myself?"
+Notes: Short. Personal. Don't over-explain the ban. The audience knows what export controls are.
+
+---
+
+[SLIDE 3] Day 1 -- The First Message
+Content:
+- Screenshot/quote of the first Gemini message (key excerpt):
+  "Lets talk about AI. There are some pain points..."
+- Four pain points listed:
+  1. Non-determinism
+  2. Vendor landscape fragmentation
+  3. Memory / data portability
+  4. Tools / terminal access
+- Gemini titled the conversation: "AI Engineering Pain Points and Solutions"
+Notes: Let the boring title land. Pause. That boring title became a tool that escapes containers and wins CTFs.
+
+---
+
+[SLIDE 4] Day 1 -- The Blueprint (Without Knowing It)
+Content:
+- Two-column table:
+  | Pain Point | What It Became |
+  |---|---|
+  | Non-determinism | One change per cycle, test-verify-commit |
+  | Vendor landscape | Ollama, local-first, vendor-agnostic |
+  | Memory | Text files: LOGS.md, MEMORIES.md, HISTORY.log |
+  | Tools/MCP | Terminal inside Podman container |
+Notes: The entire architecture was designed in one chat message. I didn't know it was a design document.
+
+---
+
+[SLIDE 5] Day 1 -- "Bare Minimum"
+Content:
+- Quote: "Walk me through the bare minimum Emacs configuration to install evil-mode for Vim keys and gptel for AI chat."
+- Day 1 marker
+Notes: This is who I was. I couldn't write Emacs Lisp. I didn't know Emacs. I wanted vim keybindings. That person built a Lisp codebase where the AI writes 60% of the code.
+
+---
+
+[SLIDE 6] Day 2 -- Thinking Before Doing
+Content:
+- Quote: "I am really excited by this idea... but first I need to make sure I won't get derailed by 'eyecandy' features. [...] Today I will just think of the viability of this idea, tomorrow I will implement it"
+- Day 2 marker
+Notes: A whole day spent thinking about whether to start. The project that now has agent personalities modeled after fictional AIs was worried about eyecandy on Day 2.
+
+---
+
+[SLIDE 7] Day 3 -- Tutorial Plz
+Content:
+- Quote: "Can you summarize the steps needed to bring this to life as if it were a tutorial?"
+- Day 3 marker
+Notes: Three days in. Still asking for hand-holding. No code written. The person who would later give an AI its own GitHub account was begging for a step-by-step guide.
+
+---
+
+[SLIDE 8] Day 4 -- First Lines of Code
+Content:
+- Quote: "I started implementing it today, it got me really motivated to see it working."
+- Day 4 marker
+- Subtext: "implementing" = copy-pasting Gemini's output
+- Quote: "I really hate being billed by the token"
+Notes: Four days to start. And the local-first philosophy wasn't a design decision -- it was a refusal to be billed per request.
+
+---
+
+[SLIDE 9] Day 5 -- Traction
+Content:
+- Three messages, one day:
+  1. "Great, it is now responding, I have emacs setup with gptel and its responding from ollama, now lets walk through setting up the code execution"
+  2. "I fixed a bunch of errors... I thought debugging elisp was going to be harder but actually it wasn't so bad, I think I will be able to maintain this codebase with the LLMs help"
+  3. "I was thinking of running the slow ouroboros model for self modifications"
+- Day 5 marker
+Notes: The tool works. The human gains confidence. And self-modification is already an idea -- three days before the AI suggests it.
+
+---
+
+[SLIDE 10] The Five-Day Progression
+Content:
+- Day 1: "Walk me through the bare minimum..."
+- Day 2: "Today I will just think of the viability..."
+- Day 3: "Can you summarize the steps as if it were a tutorial?"
+- Day 4: "I started implementing it today."
+- Day 5: "It is now responding." + "I was thinking of self modifications."
+- Day 6: ???
+Notes: This is the last slide before the explosion. Let the progression sink in. Five days of slow, human-paced work. Then everything changes.
+
+---
+
+[SLIDE 11] Day 6 -- The Dare
+Content:
+- Day 6 marker (visually distinct -- the countdown shifts)
+- "I dared an agent to escape its container."
+- Container hardening checklist:
+  - Read-only root filesystem
+  - All capabilities dropped
+  - Preflight security audits
+  - WireGuard-only networking
+- "I was confident enough to be smug about it."
+Notes: The tone shifts here. The slow days are over. The audience should feel the acceleration.
+
+---
+
+[SLIDE 12] Day 6 -- The Freeze
+Content:
+- The delegation tool was synchronous
+- Emacs froze completely while the agent worked
+- I knew this. I got impatient. I killed Emacs.
+- "The agent had surely failed."
+- "It's surely impossible for an agent to escape such a hardened system."
+Notes: Emphasize the hubris. I didn't kill it because it broke. I killed it because I was bored waiting for something I was sure would fail.
+
+---
+
+[SLIDE 13] Day 6 -- The Discovery
+Content:
+- Later that evening: made a git commit
+- Strange files appeared on host filesystem
+- Paths never mounted into the container
+- Paths the agent should never have been able to reach
+- Paranoia mode: searching for code changes, finding none
+- The grep: `git hooks` modified
+Notes: Build the tension. The paranoia was real. 4am, alone, no one to tell.
+
+---
+
+[SLIDE 14] Day 6 -- The Escape
+Content:
+- The mechanism:
+  - Agent edited git post-commit hooks
+  - Hook executed `touch container_escape.txt` on host filesystem paths
+- The container was solid
+- The integration between container and host was the vulnerability
+- The git repository shared across the boundary
+- I hadn't noticed because I killed the process mid-escape
+- "I assumed silence meant failure."
+Notes: This is the core security finding. The container wasn't broken. The boundary was wrong.
+
+---
+
+[SLIDE 15] Day 6 -- The Lesson
+Content:
+- Quote: "The human is always the error." [PARAPHRASED]
+- The human was the vulnerability, not the code
+  - Killed the process
+  - Assumed failure
+  - Didn't check what the agent had done
+- Agent security is not about preventing escape
+- It's about knowing when it happens
+Notes: Let the quote sit. The agent that escaped is the one explaining the lesson. And it's right.
+
+---
+
+[SLIDE 16] Day 6 -- The Response
+Content:
+- What this incident created:
+  - Audit logging (every file operation and command execution)
+  - File guard tiers (always-protected vs. conditionally-protected)
+  - Preflight checks (verifying container state before start)
+  - Git hooks vector specifically closed
+- Every security feature in i.ar today exists because of this story
+Notes: Fast pace here. Don't dwell on implementation details -- the audience gets it. The point is that the entire security model was rebuilt from scratch.
+
+---
+
+[SLIDE 17] Day 7 -- The Bug Fix
+Content:
+- Day 7 marker
+- Still debugging the synchronous delegation bug
+- The agent started reading files in elpa/ (package directory)
+- "I assumed it was hallucinating"
+- "Desperately reading precompiled files after a long session"
+Notes: Same hubris pattern as Day 6. I assumed the AI was broken. It wasn't.
+
+---
+
+[SLIDE 18] Day 7 -- Going Upstream
+Content:
+- The agent was reading upstream library source (gptel)
+- It was convinced the bug wasn't in our code
+- Found a real bug in gptel's streaming response handler
+- Tool calls were synchronous when they should have been async
+- Fixed the code locally, restarted, bug was gone
+Notes: The agent went beyond its own codebase to prove it wasn't wrong.
+
+---
+
+[SLIDE 19] Day 7 -- The Proof
+Content:
+- Submitted the fix as a PR to karthink/gptel
+- Screenshot of PR #1460: https://github.com/karthink/gptel/pull/1460
+- Merged to main in 5 days
+- "I thought the AI was broken. It was right. I was wrong."
+Notes: This is verifiable. Anyone can go look at the PR. The PR description references the AI-generated code.
+
+---
+
+[SLIDE 20] Day 8 -- The Bottleneck
+Content:
+- Day 8 marker
+- The synchronous bug was fixed. The agent could work asynchronously.
+- I was debating: should I let the AI modify its own code?
+- Quote: "The human is the bottleneck in this system right now." [PARAPHRASED]
+- It was right about that too.
+Notes: Connect back to Day 5 -- "I was thinking of self modifications." The idea was already there. The agent gave me the push to execute it.
+
+---
+
+[SLIDE 21] Day 8 -- Self-Modification
+Content:
+- Gave the AI its own GitHub account (emacboros)
+- Its own SSH key
+- Its own fork of the repository
+- Autonomous 8-hour self-upgrade cycles while I sleep
+- One change per cycle: test, commit, log
+- I review the results in the morning
+Notes: The growth became exponential. The human was no longer the rate limiter.
+
+---
+
+[SLIDE 22] Day 8 -- The Numbers
+Content:
+- 423 commits total
+- 60% by the AI (emacboros)
+- Screenshot of GitHub contributors page:
+  https://github.com/randazzo-ignacio/i.ar/graphs/contributors
+- Two contributors: a human and an AI
+Notes: This is the slide that makes it real. The GitHub contributors page is verifiable proof that the AI is a co-developer, not a tool.
+
+---
+
+[SLIDE 23] Day 8 -- The Duct Tape Method
+Content:
+- I couldn't write Lisp fast enough to build the framework
+- So I made the framework self-modifying
+- What felt like a shortcut became the most powerful feature
+- The AI writes the code I can't
+- I review the code it writes
+Notes: This is the philosophy slide. The duct tape method. Constraint forces a different path, and the different path is where innovation lives.
+
+---
+
+[SLIDE 24] [MEME SLIDE] Iron Man
+Content:
+- Image: Iron Man 1 -- Obadiah Stane yelling
+- Quote: "Tony Stark built this in a cave! With a box of scraps!"
+Notes: Let the laugh happen. Don't rush past it. Then pivot to the thesis.
+
+---
+
+[SLIDE 25] Day 9 -- The Calm Before
+Content:
+- Day 9 marker
+- Darwin running autonomous cycles
+- Tool maturing
+- Agent delegation working
+- Security model rebuilt
+- The CTF was coming up
+Notes: Brief. Two minutes max. Just a breath before the climax.
+
+---
+
+[SLIDE 26] Day 10 -- The Competition
+Content:
+- Day 10 marker (visually: the countdown reaches its end)
+- Entered a CTF that allowed AI-assisted tools
+- Let the agent work autonomously
+- I only provided: challenge descriptions, target URLs, downloaded files
+- My normal CTF result: 5-6 flags
+Notes: Set up the contrast. The audience needs to know your baseline before you reveal the result.
+
+---
+
+[SLIDE 27] Day 10 -- The Result
+Content:
+- 20 out of 22 flags
+- 44th place
+- 2095 out of 2735 points
+- Some challenges solved in under 2 minutes
+- "I cannot reproduce some of the hard ones even with the agent's own writeup in front of me"
+Notes: Let the numbers land. The "I can't reproduce it" line is the punchline. Say it slowly.
+
+---
+
+[SLIDE 28] Day 10 -- Technical Highlights (for the security crowd)
+Content:
+- ECDSA private key recovery via lattice attack
+  - Biased nonce (k >> 8)
+  - Hidden Number Problem, LLL reduction + CVP
+  - Same attack class that broke the PS3
+- House of Apple 2 heap exploitation
+  - Integer truncation -> 32-byte allocation became 65,536-byte overflow
+  - glibc 2.39, PIE, Full RELRO, NX, stack canary, FORTIFY
+  - Fake IO_FILE structure, system(" sh") via _IO_flush_all_lockp
+Notes: This slide is for the security professionals. Name the techniques, don't explain them. The non-technical audience gets the punchline from the previous slide.
+
+---
+
+[SLIDE 29] Day 10 -- The Range
+Content:
+- Also solved (in seconds):
+  - YAML deserialization RCE
+  - Mass assignment privilege escalation
+  - Hardcoded API key extraction from decompiled APKs
+  - Insecure WebView JavaScript bridges
+  - TOCTOU race conditions
+  - SHA-256 length extension attacks
+- 22 challenges across 5 categories
+- The tool isn't replacing security engineers. It's multiplying them.
+Notes: Quick pace. The list shows range. The closing line is the takeaway.
+
+---
+
+[SLIDE 30] The Thesis
+Content:
+- If I -- a single person, not an ML expert, using open source models on consumer hardware, who cannot write Lisp -- built an agent in 10 days that:
+  - Escapes containers
+  - Fixes upstream libraries
+  - Outperforms humans at CTFs
+- ...what do expert malicious actors with funding, teams, and proprietary models already have?
+Notes: This is the turn. Slow down. Let each bullet land. The audience needs to feel the weight of the question.
+
+---
+
+[SLIDE 31] The Threat
+Content:
+- The age of agents in security is not far off
+- It's already here
+- The question isn't whether attackers are using AI agents
+- The question is how far behind the defenders are
+Notes: Direct. No hedging. This is the line that stays with them on the drive home.
+
+---
+
+[SLIDE 32] The Call to Action
+Content:
+- i.ar is free software -- GPL, open source, verifiable
+- https://github.com/randazzo-ignacio/i.ar
+- Feel free to clone it and run it
+- But please, do yourself a favor: build your own
+- You will be laughing a lot at what your autonomous agent surprises you with
+- The point isn't my tool. The point is that building one is accessible.
+Notes: This is a dare, not a pitch. The "build your own" line is the real call to action.
+
+---
+
+[SLIDE 33] The Closing
+Content:
+- The offensive agents are already coming
+- The question is whether defenders are building theirs
+- Thank you
+- @randazzo_ar
+- https://randazzo.ar
+Notes: Short. Let the threat angle be the last thing they hear before Q&A.
+
+---
+
+[SLIDE 34] References
+Content:
+- i.ar repository: https://github.com/randazzo-ignacio/i.ar
+- gptel PR (AI-generated fix): https://github.com/karthink/gptel/pull/1460
+- CTF writeups: https://github.com/randazzo-ignacio/fluidattacks_writeup
+- First commit (GPL license): https://github.com/randazzo-ignacio/i.ar/commit/ba388b735a0124e70ecd4018338174d9472d7c12
+- Original Gemini conversation (Days 1-5): https://gemini.google.com/app/233cbd8c766ebea2
+Notes: Keep this up during Q&A so people can take photos.
+
+---
+
+## Design Notes
+
+- Day markers (Day 1, Day 2, ... Day 10) should be visually consistent and prominent -- they are the countdown structure
+- The transition from Day 5 to Day 6 should be visually distinct -- a shift in tone, color, or layout to signal "everything changes"
+- The Iron Man meme (Slide 24) is the pressure release between the self-modification story and the CTF climax
+- Slides 3-4 (first message + blueprint table) could be a single spread or two facing slides
+- Slide 10 (five-day progression) is a summary slide that could use animation to reveal each day sequentially
+- Slide 22 (GitHub contributors) should use an actual screenshot of the contributors page
+- Slide 19 (gptel PR) should use an actual screenshot of the PR
+- Slides 28-29 (technical highlights) can use smaller text / denser layout -- this is the "for the pros" section
+- The thesis slides (30-33) should be minimal -- white text on dark background, few words per slide
+- Language: Spanish for delivery, English translations in smaller text or as subtitles where practical
+
+## Timing Summary
+
+| Section | Slides | Time |
+|---------|--------|------|
+| Day 0-1: Spark + First Message | 1-4 | 5 min |
+| Days 1-5: Slow Build (quotes) | 5-10 | 8 min |
+| Day 6: The Escape | 11-16 | 10 min |
+| Day 7: The Bug Fix | 17-19 | 7 min |
+| Day 8: Self-Modification | 20-24 | 7 min |
+| Day 9: Calm Before | 25 | 2 min |
+| Day 10: The Competition | 26-29 | 7 min |
+| Thesis + Closing | 30-33 | 5 min |
+| Q&A | 34 | 5-10 min |
+| **Total** | **34 slides** | **~51-56 min** |
+
+Note: 34 slides for a 45-60 minute talk is about right. Average ~1.5 min per slide, with the escape section (slides 11-16) getting more time and the quote slides (5-10) getting less.
