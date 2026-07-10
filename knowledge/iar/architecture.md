@@ -91,13 +91,26 @@ The Emacs environment runs inside a Podman container built from `quay.io/fedora/
 
 ## Bind Mounts
 
-- `/root/i.ar` -> `/root/i.ar` (btrfs subvolume, the project repo)
+**Always mounted (all modes):**
 - `/root/i.ar/emacs.d` -> `/root/.emacs.d` (Emacs configuration)
 - `/root/i.ar/prompts` -> `/root/.emacs.d/agents.d` (agent profiles and prompt templates)
 - `/root/i.ar/metaconfig` -> `/root/.emacs.d/metaconfig` (parameters)
 - Personalization dir `knowledge/` -> `/root/.emacs.d/knowledge` (via `--personalization`)
 - Personalization dir `tasks/` -> `/root/.emacs.d/tasks` (via `--personalization`)
 - Personalization dir `audit/` -> `/root/.emacs.d/audit` (via `--personalization`)
+
+**Only mounted with `--self-modification`:**
+- `/root/i.ar/.git` -> `/root/i.ar/.git` (git repo access for darwin commits)
+- `/root/i.ar/.gitignore` -> `/root/i.ar/.gitignore`
+- `/root/i.ar/.gitmodules` -> `/root/i.ar/.gitmodules`
+- `/root/i.ar/LICENSE` -> `/root/i.ar/LICENSE`
+- `/root/i.ar/README.org` -> `/root/i.ar/README.org`
+- `/root/i.ar/containers/` -> `/root/i.ar/containers/`
+- `/root/i.ar/utils/` -> `/root/i.ar/utils/`
+
+The `personalization/` submodule is NEVER mounted into the container. This prevents the detached HEAD state of the submodule from causing issues. Each top-level item in the repo is mounted individually (excluding `personalization/`, `emacs.d/`, `metaconfig/`, and `prompts/` which are already mounted separately).
+
+Without `--self-modification`, agents have no access to the repo at all -- only the Emacs configuration, prompts, and personalization mounts.
 
 ### Shared Include Files
 
