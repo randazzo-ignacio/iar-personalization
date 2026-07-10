@@ -22,7 +22,7 @@ All Emacs Lisp modules live in `init.d/` and are organized into subdirectories b
 | Module | Purpose |
 |--------|---------|
 | `agent/agent_loader.el` | **C-c a** -- Interactive agent profile loader. Discovers `agents.d/agents/<name>/prompt.org`, expands `#+INCLUDE` directives via org-export, injects personal files (LOGS.md, SUMMARY.md, MEMORIES.md) from `tasks/<name>/` programmatically, sets `gptel-system-prompt`. Tracks current agent name and file. Resets knowledge state on agent switch. Reports prompt size on load. |
-| `agent/knowledge_loader.el` | **C-c k** -- Interactive knowledge folder/file loader. Reads `.md`/`.org` files from `knowledge/<folder>/`, appends to system prompt with delimiters. Supports multiple knowledge bases loaded simultaneously. Idempotent (same knowledge reload is no-op). **C-c p** -- Prompt size info (chars + approximate tokens). |
+| `agent/knowledge_loader.el` | **C-c k** -- Interactive knowledge folder loader. Reads all `.md`/`.org` files from a `knowledge/<folder>/` directory, appends to system prompt with delimiters. Supports multiple knowledge bases loaded simultaneously. Idempotent (same knowledge reload is no-op). **C-c p** -- Prompt size info (chars + approximate tokens). |
 | `agent/delegate_tool.el` | Async multi-agent delegation. Spawns sub-agent buffers with streaming output mirrored to parent. Timeout handling, max depth limiting, unknown tool blocking, text-only turn re-prompting. |
 | `agent/prompt_loader.el` | Loads prompt templates from `agents.d/common/*.org`. Used by delegate_tool, darwin_cycle, loop_guard, memory_tools. |
 | `agent/reload_tools.el` | **reload_os** tool: re-evaluates init.el, rebuilds gptel-tools. **reload_agent** tool: re-reads current agent's prompt.org. |
