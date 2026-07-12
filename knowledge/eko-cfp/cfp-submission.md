@@ -1,4 +1,4 @@
-# ekoparty 2025 CFP Submission
+# ekoparty 2026 CFP Submission
 
 ## Submission Fields
 

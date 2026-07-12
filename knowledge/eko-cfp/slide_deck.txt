@@ -11,7 +11,7 @@ Content:
 - "The Human Is the Bottleneck"
 - "Building AI Security Agents in 10 Days"
 - Ignacio "Nacho" Randazzo
-- ekoparty 2025
+- ekoparty 2026
 Notes: Wait for silence before starting. Let the title sit.
 
 ---

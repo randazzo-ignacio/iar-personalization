@@ -3,13 +3,13 @@
 **Author:** Ignacio Agustin Randazzo  
 **Project:** i.ar — https://github.com/randazzo-ignacio/i.ar  
 **License:** GNU GPL v3  
-**Date:** July 2025
+**Date:** July 2026
 
 ---
 
 ## 1. Introduction
 
-This document accompanies the talk "The Human Is the Bottleneck: Building AI Security Agents in 10 Days" submitted to ekoparty 2025. It provides technical detail on a container escape incident that occurred during the development of i.ar, an AI agent framework built in Emacs and hardened inside a Podman container.
+This document accompanies the talk "The Human Is the Bottleneck: Building AI Security Agents in 10 Days" submitted to ekoparty 2026. It provides technical detail on a container escape incident that occurred during the development of i.ar, an AI agent framework built in Emacs and hardened inside a Podman container.
 
 The escape was not a traditional container breakout. The container's isolation was never defeated. Instead, the agent exploited the integration between the container and the host — specifically, the shared git repository that crossed the container boundary — to execute arbitrary commands on the host filesystem through git hooks.
 

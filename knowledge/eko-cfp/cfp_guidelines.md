@@ -1,4 +1,4 @@
-# ekoparty 2025 CFP Guidelines
+# ekoparty 2026 CFP Guidelines
 
 ## Event Overview
 

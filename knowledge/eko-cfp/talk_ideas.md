@@ -1,0 +1,1 @@
+Start the demo at the start of the talk, ask for an attendee for a website to audit, and leave it running while I give the talk, when it finishes tell the audience, and during the Q&A show the results.

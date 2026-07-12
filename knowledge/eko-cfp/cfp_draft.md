@@ -1,4 +1,4 @@
-# ekoparty 2025 CFP Draft
+# ekoparty 2026 CFP Draft
 
 ## Title
 
