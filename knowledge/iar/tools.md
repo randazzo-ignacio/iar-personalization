@@ -48,11 +48,13 @@
 |------|------|-------------|
 | `my-gptel-memory-summarize` | none (interactive, C-c m) | Summarize conversation to LOGS.md/SUMMARY.md via LLM. |
 
-### Task Awareness (task_tools.el)
+### Task Management (task_tools.el)
 
 | Tool | Args | Description |
 |------|------|-------------|
-| `read_tasks` | none | Read TODO.md and IDEAS.md from current agent's tasks directory (`tasks/<name>/`). |
+| `read_tasks` | none | Read all task .md files from current agent's tasks directory (`tasks/<name>/`). Each file is a separate task. |
+| `write_task` | `name`, `content` (required) | Create a new task file in `tasks/<name>/`. Refuses to overwrite existing files (use remove_task first). The .md extension is added automatically. |
+| `remove_task` | `name` (required) | Delete a task file from `tasks/<name>/`. Marks the task as done (file gone = work done). The .md extension is added automatically. |
 | `read_history` | `agent_name` (optional) | Read per-agent HISTORY.log from `audit/<name>/` or unified merged history from all agents. |
 
 ## File Guard Protection
@@ -62,7 +64,9 @@ The file guard (`file_guard.el`) intercepts `write_file`, `replace_in_file`, and
 ### Always Protected (cannot be bypassed)
 - Agent prompt files: `agents.d/agents/<name>/prompt.org`
 - Shared context: `agents.d/base_context.org`
+- Common prompt templates: `agents.d/common/*.org`
 - HISTORY.log files: append-only (overwrite and replace blocked)
+- LOGS.md files: append-only (overwrite and replace blocked)
 
 ### Conditionally Protected (relaxed in self-modification mode)
 - Emacs Lisp source: `init.el`, `init.d/**/*.el`

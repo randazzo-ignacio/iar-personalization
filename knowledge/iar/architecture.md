@@ -39,8 +39,8 @@ The project lives at `/root/i.ar/` and is a git repository. The Emacs configurat
     update_submodules.sh -- Submodule update helper
   personalization/   -- Git submodule (iar-personalization repo)
     knowledge/       -- Knowledge bases (injectable via C-c k)
-    tasks/           -- Per-agent personal files
-    audit/           -- Per-agent HISTORY.log + global audit.log
+    tasks/           -- Per-agent task files (one .md per task)
+    audit/           -- Per-agent HISTORY.log, LOGS.md, SUMMARY.md, MEMORIES.md + global audit.log
   workspace/         -- Working directory for agent outputs (CTF, audit reports, gitignored)
 ```
 
@@ -56,8 +56,8 @@ Personal data (knowledge bases, per-agent files, audit logs) is separated from t
     infra/           -- Ansible infrastructure documentation
     linux/           -- Linux administration knowledge
     ignisp/          -- ignisp programming language knowledge
-  tasks/<agent>/     -- Per-agent personal files: TODO.md, IDEAS.md, LOGS.md, SUMMARY.md, MEMORIES.md
-  audit/<agent>/     -- Per-agent HISTORY.log files
+  tasks/<agent>/     -- Per-agent task files (one .md per task, file exists = work to do)
+  audit/<agent>/     -- Per-agent HISTORY.log, LOGS.md, SUMMARY.md, MEMORIES.md
   audit/audit.log    -- Global audit log
 ```
 

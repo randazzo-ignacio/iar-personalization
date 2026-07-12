@@ -21,13 +21,13 @@ All Emacs Lisp modules live in `init.d/` and are organized into subdirectories b
 
 | Module | Purpose |
 |--------|---------|
-| `agent/agent_loader.el` | **C-c a** -- Interactive agent profile loader. Discovers `agents.d/agents/<name>/prompt.org`, expands `#+INCLUDE` directives via org-export, injects personal files (LOGS.md, SUMMARY.md, MEMORIES.md) from `tasks/<name>/` programmatically (truncated to last N lines via `my-gptel-personal-file-max-lines`), sets `gptel-system-prompt`. Tracks current agent name and file. Resets knowledge state on agent switch. Reports prompt size on load. |
+| `agent/agent_loader.el` | **C-c a** -- Interactive agent profile loader. Discovers `agents.d/agents/<name>/prompt.org`, expands `#+INCLUDE` directives via org-export, injects personal files (LOGS.md, SUMMARY.md, MEMORIES.md) from `audit/<name>/` programmatically (truncated to last N lines via `my-gptel-personal-file-max-lines`), sets `gptel-system-prompt`. Tracks current agent name and file. Resets knowledge state on agent switch. Reports prompt size on load. |
 | `agent/knowledge_loader.el` | **C-c k** -- Interactive knowledge folder loader. Reads all `.md`/`.org` files from a `knowledge/<folder>/` directory, appends to system prompt with delimiters. Supports multiple knowledge bases loaded simultaneously. Idempotent (same knowledge reload is no-op). **C-c p** -- Prompt size info (chars + approximate tokens). Also provides `my-gptel-load-knowledge-dir` for non-interactive use (used by agent_cycle.el to load knowledge in batch mode). |
 | `agent/delegate_tool.el` | Async multi-agent delegation. Spawns sub-agent buffers with timeout handling, max depth limiting, unknown tool blocking, text-only turn re-prompting. Sub-agent output is returned as tool result (no live streaming into parent buffer). |
 | `agent/prompt_loader.el` | Loads prompt templates from `agents.d/common/*.org`. Used by delegate_tool, agent_cycle, loop_guard, memory_tools. |
 | `agent/reload_tools.el` | **reload_os** tool: re-evaluates init.el, rebuilds gptel-tools. **reload_agent** tool: re-reads current agent's prompt.org. |
 | `agent/memory_tools.el` | **C-c m** -- Memory summarization. Sends conversation to LLM for summarization, stores in LOGS.md/SUMMARY.md. |
-| `agent/task_tools.el` | Reads TODO.md and IDEAS.md from `tasks/<name>/`. Reads per-agent and unified HISTORY.log from `audit/<name>/`. |
+| `agent/task_tools.el` | Provides `read_tasks` (reads all .md task files from `tasks/<name>/`), `write_task` (creates a new task file, refuses to overwrite), `remove_task` (deletes a task file, marks done), and `read_history` (reads per-agent and unified HISTORY.log from `audit/<name>/`). Task system: file-per-task, file exists = work to do, file gone = work done. |
 | `agent/agent_cycle.el` | Autonomous agent cycle runner (`agent-run-cycle`). Any orchestrator agent can run autonomously in a loop: one change per cycle, testing, logging, sleeping. Has its own cycle buffer, timeout, max turns, continue prompting. Loads shared `agent_cycle.org` prompt. Supports `:agent`, `:knowledge`, `:self-modification` parameters. |
 
 ### Filesystem and Code Tools
@@ -80,11 +80,11 @@ The `prompt.org` file includes shared context via:
 Personal files are NOT in the agent directory. They live in the personalization mount:
 
 ```
-tasks/<name>/     -- LOGS.md, SUMMARY.md, MEMORIES.md, TODO.md, IDEAS.md
-audit/<name>/     -- HISTORY.log
+tasks/<name>/     -- Task files (one .md per task, file exists = work to do)
+audit/<name>/     -- HISTORY.log, LOGS.md, SUMMARY.md, MEMORIES.md
 ```
 
-These are injected into the agent prompt programmatically by `agent_loader.el` (not via #+INCLUDE). The agent sees its memory as part of its system prompt without any #+INCLUDE lines for personal files.
+Memory files (LOGS.md, SUMMARY.md, MEMORIES.md) are injected into the agent prompt programmatically by `agent_loader.el` from `audit/<name>/` (not via #+INCLUDE). The agent sees its memory as part of its system prompt without any #+INCLUDE lines for personal files. Task files are read on demand via the `read_tasks` tool from `tasks/<name>/`.
 
 ## Shared Context
 

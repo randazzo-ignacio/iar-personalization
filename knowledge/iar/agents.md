@@ -39,15 +39,23 @@ Orchestrator agents (auditor, ctfwizard) additionally include `base_orchestrator
 
 ## Agent Memory System
 
-Each agent has three memory tiers:
+Each agent has memory files and task files, stored in the personalization mount:
+
+### Memory Files (in `audit/<name>/`)
 
 1. **HISTORY.log** -- Operational log. Append-only. File-guard protected (cannot be overwritten). Lives at `audit/<name>/HISTORY.log`. Format: `[YYYY-MM-DD HH:MM:SS] AgentName: concise description`. Used for audit trail.
 
-2. **LOGS.md** -- Semantic session notes. What was discussed, decided, learned. Lives at `tasks/<name>/LOGS.md`. Injected into agent prompt programmatically by `agent_loader.el` (not via #+INCLUDE). Updated after significant sessions.
+2. **LOGS.md** -- Semantic session notes. What was discussed, decided, learned. Lives at `audit/<name>/LOGS.md`. Injected into agent prompt programmatically by `agent_loader.el` (not via #+INCLUDE). Updated after significant sessions.
 
-3. **SUMMARY.md** -- Compressed memory. Lives at `tasks/<name>/SUMMARY.md`. The `C-c m` command (memory_tools.el) sends the conversation to the LLM for summarization, producing a compressed set of bullet points. Injected into agent prompt programmatically by `agent_loader.el`.
+3. **SUMMARY.md** -- Compressed memory. Lives at `audit/<name>/SUMMARY.md`. The `C-c m` command (memory_tools.el) sends the conversation to the LLM for summarization, producing a compressed set of bullet points. Injected into agent prompt programmatically by `agent_loader.el`.
 
-As LOGS.md and SUMMARY.md grow, they consume prompt tokens. Use `C-c p` to monitor total prompt size. If it gets too large, summarize and trim.
+4. **MEMORIES.md** -- Darwin's compressed memory (replaces LOGS.md + SUMMARY.md for darwin). Lives at `audit/<name>/MEMORIES.md`. Injected into agent prompt programmatically by `agent_loader.el`.
+
+### Task Files (in `tasks/<name>/`)
+
+Each task is a separate `.md` file. File exists = work to do. File gone = work done. One bit of state per task. Read via `read_tasks` tool, created via `write_task` tool, removed via `remove_task` tool.
+
+As LOGS.md, SUMMARY.md, and MEMORIES.md grow, they consume prompt tokens. Use `C-c p` to monitor total prompt size. If it gets too large, summarize and trim.
 
 ## Delegation Architecture
 
@@ -67,12 +75,12 @@ Darwin is special. It runs in a loop without human direction:
 
 1. MEMORIES.md (last 200 lines) is in system prompt -- no need to re-read
 2. Read recent HISTORY.log via read_history tool
-3. Read TODOs/IDEAS via read_tasks tool (continuity across cycles)
+3. Read tasks via read_tasks tool (continuity across cycles)
 4. Make one small change
 5. Delegate to reviewer for code review
 6. Run tests (revert if fail)
 7. Commit, log, update memories
-8. Update TODO.md/IDEAS.md for long-term planning
+8. Use remove_task to delete completed tasks, write_task to create new ones
 9. Sleep
 10. Repeat
 
