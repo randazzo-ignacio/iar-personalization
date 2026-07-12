@@ -75,14 +75,16 @@ Darwin is special. It runs in a loop without human direction:
 
 1. MEMORIES.md (last 200 lines) is in system prompt -- no need to re-read
 2. Read recent HISTORY.log via read_history tool
-3. Read tasks via read_tasks tool (continuity across cycles)
-4. Make one small change
+3. **MANDATORY:** Read tasks via read_tasks tool. One task at a time. If empty, use write_task to create one.
+4. Make one small change (progress toward current task)
 5. Delegate to reviewer for code review
 6. Run tests (revert if fail)
 7. Commit, log, update memories
-8. Use remove_task to delete completed tasks, write_task to create new ones
+8. If task complete: remove_task, end with LOOP_COMPLETE (stops the loop for PR review). If task not done: end with CYCLE_COMPLETE (loop starts next cycle).
 9. Sleep
 10. Repeat
+
+Darwin works on ONE task across multiple cycles. The task is the PR boundary -- when the task is done, the loop stops and the human reviews. max_cycles is a time budget, not a task boundary.
 
 Darwin's constraints:
 - `init.el` is immutable (cannot modify the entry point)
