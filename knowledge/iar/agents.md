@@ -10,6 +10,7 @@
 | **darwin** | Autonomous self-modifying agent. Runs in cycles, makes one small change, tests, logs, sleeps. | Active, autonomous |
 | **auditor** | Security audit orchestrator. Delegates recon, analysis, action. Non-destructive. | Active, used for real audits |
 | **ctfwizard** | CTF orchestrator. Delegates to specialists, coordinates attack chains. | Active, used for CTFs |
+| **gardener** | Continuous codebase monitor. Runs tests, diagnoses failures, writes task files for darwin. | Active, continuous |
 
 ### Sub-Agents (delegated by orchestrators)
 
@@ -45,11 +46,11 @@ Each agent has memory files and task files, stored in the personalization mount:
 
 1. **HISTORY.log** -- Operational log. Append-only. File-guard protected (cannot be overwritten). Lives at `audit/<name>/HISTORY.log`. Format: `[YYYY-MM-DD HH:MM:SS] AgentName: concise description`. Used for audit trail.
 
-2. **LOGS.md** -- Semantic session notes. What was discussed, decided, learned. Lives at `audit/<name>/LOGS.md`. Injected into agent prompt programmatically by `agent_loader.el` (not via #+INCLUDE). Updated after significant sessions.
+2. **LOGS.md** -- Semantic session notes. What was discussed, decided, learned. Lives at `audit/<name>/LOGS.md`. Injected into agent prompt programmatically by `iar-agent-loader.el` (not via #+INCLUDE). Append-only (file-guard protected). Updated after significant sessions.
 
-3. **SUMMARY.md** -- Compressed memory. Lives at `audit/<name>/SUMMARY.md`. The `C-c m` command (memory_tools.el) sends the conversation to the LLM for summarization, producing a compressed set of bullet points. Injected into agent prompt programmatically by `agent_loader.el`.
+3. **SUMMARY.md** -- Compressed memory. Lives at `audit/<name>/SUMMARY.md`. The `C-c m` command (memory_tools.el) sends the conversation to the LLM for summarization, producing a compressed set of bullet points. Injected into agent prompt programmatically by `iar-agent-loader.el`.
 
-4. **MEMORIES.md** -- Darwin's compressed memory (replaces LOGS.md + SUMMARY.md for darwin). Lives at `audit/<name>/MEMORIES.md`. Injected into agent prompt programmatically by `agent_loader.el`.
+4. **MEMORIES.md** -- Darwin's compressed memory (replaces LOGS.md + SUMMARY.md for darwin). Lives at `audit/<name>/MEMORIES.md`. Injected into agent prompt programmatically by `iar-agent-loader.el`.
 
 ### Task Files (in `tasks/<name>/`)
 
@@ -68,6 +69,7 @@ Key properties:
 - **Turn-limited**: Max text-only turns (default 15) prevents models that narrate instead of acting from running forever
 - **Timeout**: Default 600 seconds per delegation
 - **Unknown tool blocking**: Hallucinated tool names are intercepted early
+- **Result extraction**: Only the sub-agent's final summary (after `=== DELEGATION RESULT ===` marker) is returned to the parent, not raw tool output. This prevents context dilution.
 
 ## Darwin Autonomous Mode
 
@@ -93,4 +95,43 @@ Darwin's constraints:
 - One change per cycle (small, deliberate mutations)
 - Self-modification mode must be enabled for .el file changes
 
-Darwin uses the shared agent cycle infrastructure (`agent_cycle.el`, `agent_loop.sh`) for autonomous operation. Any orchestrator agent can be run autonomously via `agent_loop.sh --agent <name>`.
+Darwin uses the shared agent cycle infrastructure (`iar-agent-cycle.el`, `agent_loop.sh`) for autonomous operation. Any orchestrator agent can be run autonomously via `agent_loop.sh --agent <name>`.
+
+## Gardener Continuous Mode
+
+The gardener is a continuous agent that monitors the codebase:
+
+1. Pull latest code from git
+2. Compare HEAD to last checked commit (stored in `audit/gardener/STATE.org`)
+3. If no changes: log and end
+4. If changes: run tests, report pass/fail
+5. If tests fail: diagnose and write a task for darwin
+6. Update STATE.org and HISTORY.log
+
+The gardener runs via `agent_loop.sh --agent gardener --max-cycles 1`. A systemd timer fires the cycle periodically (fresh container per tick). The gardener does not need self-modification mode (read-only to codebase).
+
+## Continuous Agent Infrastructure
+
+Any orchestrator agent can run autonomously in a loop via `agent_loop.sh`:
+
+```bash
+# Single darwin cycle (needs --self-modification for code edits):
+agent_loop.sh --personalization ~/repos/iar-personalization --self-modification
+
+# Long darwin loop (50 cycles with cooldown):
+agent_loop.sh --personalization ~/repos/iar-personalization --self-modification --max-cycles 50
+
+# Run gardener (no self-modification needed):
+agent_loop.sh --personalization ~/repos/iar-personalization --agent gardener --max-cycles 1
+
+# With specific knowledge bases:
+agent_loop.sh --personalization ~/repos/iar-personalization --knowledge infra/ --knowledge iar/
+```
+
+Key design decisions:
+- `agent_loop.sh --max-cycles 1` IS the continuous agent runner. No elisp timer, no in-process state.
+- systemd timer fires -> oneshot service -> agent_loop.sh -> fresh container -> one tick -> container exits.
+- Fresh container per tick is a safety feature (no state leakage between ticks).
+- Self-modification is OFF by default (only darwin needs it).
+- Per-agent cycle prompts: `<agent>_cycle.org` is tried first, falls back to `agent_cycle.org`.
+- Cycle logging: every LLM response is appended to `audit/<agent>/cycle.log` for live monitoring (`tail -f`).

@@ -2,74 +2,104 @@
 
 All Emacs Lisp modules live in `init.d/` and are organized into subdirectories by purpose. The auto-discovery scans `init.d/dynamic/` for new modules created by agents (e.g., darwin). When a dynamic module proves useful, it is promoted to the appropriate subdirectory and added to init.el's explicit load list.
 
+## Naming Convention
+
+- `iar--<name>`: internal functions and variables
+- `iar--mygptel--<name>`: functions that hook into gptel internals (advice-add, gptel hooks, gptel-make-tool callbacks)
+- `iar-<name>`: public functions and user-facing defcustoms
+- `iar-tool--<name>`: tool module provide symbols (one tool per file)
+- Module files: `iar-kebab-case.el` for system modules, `<tool_name>.el` for tool modules
+
 ## Module Inventory
+
+### Metaconfig
+
+| Module | Purpose |
+|--------|---------|
+| `metaconfig/parameters.el` | Central parameter configuration. All tunable parameters (delegate depth, agent cycle limits, loop guard thresholds, memory limits, file read limits, personal file injection line cap, audit log rotation, base paths, keybindings, delimiters, file guard protected paths). Loaded before any init.d module. |
+| `metaconfig/gptel.el` | Ollama backend configuration. Defines models, host, request params. |
+
+### Shared Utilities
+
+| Module | Purpose |
+|--------|---------|
+| `init.d/shared/iar-utils.el` | Consolidated utilities: `iar--get-agent-name` (agent name resolution with fallback), `iar--approx-token-count` (character-to-token estimation), `iar--audit-log-path` (audit log path resolution), `iar--with-suppressed-save-hooks` (macro for atomic writes). |
+| `init.d/shared/iar-agent-utils.el` | Agent validation and path resolution: `iar--valid-name-p` (agent/task name validation), `iar--resolve-agent-dir` (path resolution with traversal defense), `iar--resolve-task-path`. |
 
 ### Core Infrastructure
 
 | Module | Purpose |
 |--------|---------|
-| `init.el` | Entry point. Loads all modules explicitly, then auto-discovers the rest. Sets `load-prefer-newer t` to avoid stale byte-compiled code. |
-| `metaconfig/parameters.el` | Central parameter configuration. All tunable parameters (delegate depth, agent cycle limits, loop guard thresholds, memory limits, file read limits, personal file injection line cap, audit log rotation). Loaded before any init.d module. |
-| `metaconfig/gptel.el` | Ollama backend configuration. Defines models, host, request params. |
-| `core/locale.el` | UTF-8 locale configuration. Must load first. |
-| `core/package_setup.el` | Package manager setup (MELPA, use-package). |
-| `core/ui_cleanup.el` | UI cleanup (no toolbar, no scrollbar, no menu bar). |
-| `core/evil_mode.el` | Evil mode (vim keybindings in Emacs). |
-| `core/gptel_setup.el` | Loads gptel package and applies metaconfig/gptel.el settings. |
+| `init.el` | Entry point. Loads all modules explicitly, then auto-discovers the rest. Sets `load-prefer-newer t` to avoid stale byte-compiled code. Sets self-modification mode from `EMACBOROS_SELF_MODIFICATION` env var before file guard loads. |
+| `core/iar-locale.el` | UTF-8 locale configuration. Must load first. |
+| `core/iar-package-setup.el` | Package manager setup (MELPA, use-package). |
+| `core/iar-ui-cleanup.el` | UI cleanup (no toolbar, no scrollbar, no menu bar). |
+| `core/iar-evil-mode.el` | Evil mode (vim keybindings in Emacs). |
+| `core/iar-gptel-setup.el` | Loads gptel package and applies metaconfig/gptel.el settings. |
 
 ### Agent System
 
 | Module | Purpose |
 |--------|---------|
-| `agent/agent_loader.el` | **C-c a** -- Interactive agent profile loader. Discovers `agents.d/agents/<name>/prompt.org`, expands `#+INCLUDE` directives via org-export, injects personal files (LOGS.md, SUMMARY.md, MEMORIES.md) from `audit/<name>/` programmatically (truncated to last N lines via `my-gptel-personal-file-max-lines`), sets `gptel-system-prompt`. Tracks current agent name and file. Resets knowledge state on agent switch. Reports prompt size on load. |
-| `agent/knowledge_loader.el` | **C-c k** -- Interactive knowledge folder loader. Reads all `.md`/`.org` files from a `knowledge/<folder>/` directory, appends to system prompt with delimiters. Supports multiple knowledge bases loaded simultaneously. Idempotent (same knowledge reload is no-op). **C-c p** -- Prompt size info (chars + approximate tokens). Also provides `my-gptel-load-knowledge-dir` for non-interactive use (used by agent_cycle.el to load knowledge in batch mode). |
-| `agent/delegate_tool.el` | Async multi-agent delegation. Spawns sub-agent buffers with timeout handling, max depth limiting, unknown tool blocking, text-only turn re-prompting. Sub-agent output is returned as tool result (no live streaming into parent buffer). |
-| `agent/prompt_loader.el` | Loads prompt templates from `agents.d/common/*.org`. Used by delegate_tool, agent_cycle, loop_guard, memory_tools. |
-| `agent/reload_tools.el` | **reload_os** tool: re-evaluates init.el, rebuilds gptel-tools. **reload_agent** tool: re-reads current agent's prompt.org. |
-| `agent/memory_tools.el` | **C-c m** -- Memory summarization. Sends conversation to LLM for summarization, stores in LOGS.md/SUMMARY.md. |
-| `agent/task_tools.el` | Provides `read_tasks` (reads all .md task files from `tasks/<name>/`), `write_task` (creates a new task file, refuses to overwrite), `remove_task` (deletes a task file, marks done), and `read_history` (reads per-agent and unified HISTORY.log from `audit/<name>/`). Task system: file-per-task, file exists = work to do, file gone = work done. |
-| `agent/agent_cycle.el` | Autonomous agent cycle runner (`agent-run-cycle`). Any orchestrator agent can run autonomously in a loop: one change per cycle, testing, logging, sleeping. Has its own cycle buffer, timeout, max turns, continue prompting. Loads shared `agent_cycle.org` prompt. Supports `:agent`, `:knowledge`, `:self-modification` parameters. |
+| `agent/iar-agent-loader.el` | **C-c a** -- Interactive agent profile loader. Discovers `agents.d/agents/<name>/prompt.org`, expands `#+INCLUDE` directives via org-export, injects personal files (LOGS.md, SUMMARY.md, MEMORIES.md) from `audit/<name>/` programmatically (truncated to last N lines via `iar-personal-file-max-lines`), sets `gptel-system-prompt`. Tracks current agent name and file. Resets knowledge state on agent switch. Reports prompt size on load. Owns `iar--load-agent-profile` (used by delegate, reload, agent_cycle). |
+| `agent/iar-knowledge-loader.el` | **C-c k** -- Interactive knowledge folder loader. Reads all `.md`/`.org` files from a `knowledge/<folder>/` directory, appends to system prompt with delimiters. Supports multiple knowledge bases loaded simultaneously. Idempotent (same knowledge reload is no-op). **C-c p** -- Prompt size info (chars + approximate tokens). Also provides `iar--load-knowledge-dir` for non-interactive use (used by agent_cycle.el to load knowledge in batch mode). |
+| `agent/iar-delegate-tool.el` | Async multi-agent delegation. Spawns sub-agent buffers with timeout handling, max depth limiting, unknown tool blocking, text-only turn re-prompting. Sub-agent output is returned as tool result (no live streaming into parent buffer). Result extraction via `=== DELEGATION RESULT ===` marker. |
+| `agent/iar-prompt-loader.el` | Loads prompt templates from `agents.d/common/*.org`. Used by delegate_tool, agent_cycle, loop_guard, memory_tools. |
+| `agent/iar-reload-tools.el` | **reload_os** tool: re-evaluates init.el, rebuilds gptel-tools. **reload_agent** tool: re-reads current agent's prompt.org. |
+| `agent/iar-memory-tools.el` | **C-c m** -- Memory summarization. Sends conversation to LLM for summarization, stores in LOGS.md/SUMMARY.md. |
+| `agent/iar-agent-cycle.el` | Autonomous agent cycle runner (`iar-run-cycle`). Any orchestrator agent can run autonomously in a loop: one change per cycle, testing, logging, sleeping. Has its own cycle buffer, timeout, max turns, continue prompting. Loads shared `agent_cycle.org` prompt. Supports `:agent`, `:knowledge`, `:self-modification` parameters. Includes per-agent cycle prompt loading (`<agent>_cycle.org` fallback to `agent_cycle.org`), cycle logging to `audit/<agent>/cycle.log`, self-modification default nil. |
 
-### Filesystem and Code Tools
+### Filesystem and Code Tools (one tool per file)
 
-| Module | Purpose |
-|--------|---------|
-| `tools/fs_tools.el` | Filesystem tools for gptel: `read_file`, `write_file`, `append_file`, `list_directory`. Size-limited reads. |
-| `tools/code_tools.el` | `execute_code_local` tool: runs bash commands in the container. Full toolset: bash, dig, nmap, openssl, python3, jq, git, curl, rg, gcc, make, etc. Exports `GIT_PAGER=cat` and `TERM=dumb` so git commands don't hang on `less` across `&&` chains. |
-| `tools/replacement_tool.el` | `replace_in_file` tool: surgical text replacement in files. |
-| `tools/check_elisp_tool.el` | `check_elisp` tool: byte-compiles .el files and reports errors/warnings without modifying them. |
+| Module | Tool | Purpose |
+|--------|------|---------|
+| `tools/filesystem/list_directory.el` | `list_directory` | List directory contents. |
+| `tools/filesystem/read_file.el` | `read_file` | Read file contents. Size-limited by `iar-fs-read-max-size` (default 1MB). |
+| `tools/filesystem/write_file.el` | `write_file` | Create or overwrite a file. File-guard enforced. Atomic writes. |
+| `tools/filesystem/append_file.el` | `append_file` | Append to end of file. Auto-prepends newline if needed. |
+| `tools/filesystem/replace_in_file.el` | `replace_in_file` | Surgical text replacement. Fails if search_text not found. |
+| `tools/code/execute_code_local.el` | `execute_code_local` | Run bash command in the container. Uses `:connection-type 'pipe` (no pty allocation -- programs detect non-interactive mode via isatty()). Full toolset: bash, dig, nmap, openssl, python3, jq, git, curl, rg, gcc, make, etc. |
+| `tools/code/check_elisp.el` | `check_elisp` | Byte-compile .el files and report errors/warnings. Does NOT modify the file. |
+| `tools/tasks/read_tasks.el` | `read_tasks` | Read all .md task files from `tasks/<name>/`. |
+| `tools/tasks/write_task.el` | `write_task` | Create a new task file. Refuses to overwrite existing files. |
+| `tools/tasks/remove_task.el` | `remove_task` | Delete a task file (marks done). |
+| `tools/tasks/read_history.el` | `read_history` | Read per-agent or unified HISTORY.log. |
 
 ### Security and Safety
 
 | Module | Purpose |
 |--------|---------|
-| `security/file_guard.el` | Protected path enforcement. Two tiers: always-protected (agent prompts, base context, history logs) and conditionally-protected (.el files, Containerfile, git hooks). Self-modification mode relaxes tier 2 but never tier 1. Controlled by `EMACBOROS_SELF_MODIFICATION` env var. |
-| `security/audit_log.el` | Audit logging for all file operations and command executions. Log at `audit/audit.log`. Rotates at configurable size. |
-| `security/loop_guard.el` | Detects repetitive tool call loops. Soft threshold: blocks and warns. Hard threshold: stops the request entirely. |
-| `security/output_sanitizer.el` | Output filtering for tool results. |
+| `security/iar-output-sanitizer.el` | Output filtering for tool results. Strips ANSI escape sequences, control characters, zero-width/bidi Unicode characters. Neutralizes fake system message wrapper tags. Flags lines resembling prompt injection. Wraps result in `[SANITIZED EXTERNAL DATA]` envelope. |
+| `security/iar-file-guard.el` | Protected path enforcement. Two tiers: always-protected (agent prompts, base context, history logs, LOGS.md) and conditionally-protected (.el files, Containerfile, git hooks). Protected paths defined as defcustoms in parameters.el with (regex reason append-allowed) triples. Self-modification mode relaxes tier 2 but never tier 1. |
+| `security/iar-audit-log.el` | Audit logging for all file operations and command executions. Log at `audit/audit.log`. Rotates at configurable size. |
+| `security/iar-loop-guard.el` | Detects repetitive tool call loops. Soft threshold: blocks and warns. Hard threshold: stops the request entirely. |
+| `security/iar-tool-guard.el` | Unknown tool blocking utility. `iar--block-unknown-tools` intercepts hallucinated tool names. Used by delegate_tool and agent_cycle. |
 
 ### Debug and Monitoring
 
 | Module | Purpose |
 |--------|---------|
-| `debug/buffer_monitor.el` | Buffer size monitor. Logs conversation buffer size (bytes, chars, approx tokens) to audit.log and per-agent `audit/<agent>/BUFFER.log` before each `gptel-send` via `advice-add :before`. Warning threshold at `my-gptel-buffer-warn-size` (default 5MB chars). Optional hard cap at `my-gptel-buffer-hard-cap` (default nil = disabled) aborts send to prevent host crash from unbounded buffer growth. |
-| `debug/request_logger.el` | Request logger. Captures full JSON payloads sent to and received from the LLM. Outgoing: advice-add `:around` on `gptel-curl--get-config` extracts JSON from config string. Incoming: advice-add `:before` on `gptel-curl--stream-cleanup` and `gptel-curl--sentinel` snapshots raw process buffer before gptel parses it. Writes to `audit/<agent>/REQUESTS.log`. Settles whether the model returns 2 tool calls or gptel splits one. |
-| `debug/fsm_tracer.el` | FSM state tracer + tool call inspector. Logs every `gptel--fsm-transition` call (old state, new state, tool-use count, tool-result count, error status) via advice-add `:before`. Also replaces `gptel--process-tool-call` with an instrumented version that logs tool name, remaining count before/after, and whether transition fired. Writes to `audit/<agent>/FSM.log`. |
+| `debug/iar-buffer-monitor.el` | Buffer size monitor. Logs conversation buffer size (bytes, chars, approx tokens) to audit.log and per-agent `audit/<agent>/BUFFER.log` before each `gptel-send` via advice-add `:before`. Warning threshold at `iar-buffer-warn-size` (default 5MB chars). Optional hard cap at `iar-buffer-hard-cap` (default nil = disabled). |
+| `debug/iar-request-logger.el` | Request logger. Captures full JSON payloads sent to and received from the LLM. Outgoing: advice-add `:around` on `gptel-curl--get-config`. Incoming: advice-add `:before` on `gptel-curl--stream-cleanup` and `gptel-curl--sentinel`. Writes to `audit/<agent>/REQUESTS.log`. |
+| `debug/iar-fsm-tracer.el` | FSM state tracer + tool call inspector. Logs every `gptel--fsm-transition` call via advice-add `:before`. Also logs `gptel--process-tool-call` and `gptel--handle-tool-use` via advice-add `:before` (observe only, never override). Writes to `audit/<agent>/FSM.log`. |
 
 ### Session Management
 
 | Module | Purpose |
 |--------|---------|
-| `session/iar_quit.el` | Session-aware shutdown. Summarizes before killing Emacs. |
+| `session/iar-quit.el` | Session-aware shutdown. Summarizes before killing Emacs. |
 
 ## Keybindings
 
 | Key | Command | Description |
 |-----|---------|-------------|
-| C-c a | `my-gptel-load-agent` | Load agent personality |
-| C-c k | `my-gptel-load-knowledge` | Load knowledge folder/file |
-| C-c p | `my-gptel-prompt-info` | Show prompt size info |
-| C-c m | `my-gptel-memory-summarize` | Summarize conversation to memory |
+| C-c a | `iar--load-agent` | Load agent personality |
+| C-c k | `iar--load-knowledge` | Load knowledge folder/file |
+| C-c p | `iar--prompt-info` | Show prompt size info |
+| C-c m | `iar--memory-summarize` | Summarize conversation to memory |
+| C-x C-c | `iar-quit` | Session-aware quit |
+
+All keybindings are defcustoms in parameters.el and can be changed without editing module code.
 
 ## Agent Profile Structure
 
@@ -92,7 +122,7 @@ tasks/<name>/     -- Task files (one .md per task, file exists = work to do)
 audit/<name>/     -- HISTORY.log, LOGS.md, SUMMARY.md, MEMORIES.md
 ```
 
-Memory files (LOGS.md, SUMMARY.md, MEMORIES.md) are injected into the agent prompt programmatically by `agent_loader.el` from `audit/<name>/` (not via #+INCLUDE). The agent sees its memory as part of its system prompt without any #+INCLUDE lines for personal files. Task files are read on demand via the `read_tasks` tool from `tasks/<name>/`.
+Memory files (LOGS.md, SUMMARY.md, MEMORIES.md) are injected into the agent prompt programmatically by `iar-agent-loader.el` from `audit/<name>/` (not via #+INCLUDE). The agent sees its memory as part of its system prompt without any #+INCLUDE lines for personal files. Task files are read on demand via the `read_tasks` tool from `tasks/<name>/`.
 
 ## Shared Context
 
@@ -108,7 +138,18 @@ Memory files (LOGS.md, SUMMARY.md, MEMORIES.md) are injected into the agent prom
 - `delegate_continue.org` -- Re-prompt for delegates that narrate instead of acting
 - `agent_cycle.org` -- Shared cycle prompt for all autonomous agents
 - `agent_cycle_continue.org` -- Shared cycle continuation prompt
+- `continuous_agent.org` -- Generic protocol for continuous agents (read memories, read history, read state, do work, log, update state, LOOP_COMPLETE)
+- `gardener_cycle.org` -- Gardener-specific cycle wake-up message
 - `memory_summarizer.org` -- Memory summarization prompt
 - `loop_soft_block.org` -- Loop guard soft block message
 - `loop_hard_stop.org` -- Loop guard hard stop message
 - `unknown_tool.org` -- Unknown tool error message
+
+## Test Suite
+
+19 test files, 541 tests total. Run with:
+```bash
+emacs --batch -l /root/.emacs.d/test/run-tests.el
+```
+
+Test files live in `test/` and follow the naming convention `test-<module>.el`. The test runner (`run-tests.el`) loads the gptel fork on load-path (via `EMACBOROS_GPTEL_FORK_PATH` env var) to ensure tests use the fork with our fixes instead of stale ELPA `.elc` files.

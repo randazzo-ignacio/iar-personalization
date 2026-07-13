@@ -43,6 +43,12 @@ cd i.ar
 ./utils/emacboros.sh --personalization ~/repos/iar-personalization \
   --mount /home/user/projects/myapp \
   --mount-ro /etc/ansible
+
+# With a local gptel fork (for testing upstream fixes):
+./utils/emacboros.sh --personalization ~/repos/iar-personalization --gptel-fork ~/repos/gptel
+
+# With memory limit (default 8g):
+./utils/emacboros.sh --personalization ~/repos/iar-personalization --memory 4g
 ```
 
 ### Flags
@@ -55,6 +61,9 @@ cd i.ar
 | `--local` | No | Use localhost Ollama instead of remote |
 | `--mount PATH` | No | Mount additional writable directory into container |
 | `--mount-ro PATH` | No | Mount additional read-only directory into container |
+| `--gptel-fork PATH` | No | Mount a local gptel fork directory (writable) into the container |
+| `--memory LIMIT` | No | Podman memory limit (default: 8g). Caps container memory. |
+| `--help, -h` | No | Show usage and exit |
 
 ## Inside Emacs
 
@@ -62,16 +71,19 @@ cd i.ar
 
 | Key | Command | Description |
 |-----|---------|-------------|
-| C-c a | `my-gptel-load-agent` | Load agent personality (mirror, darwin, auditor, etc.) |
-| C-c k | `my-gptel-load-knowledge` | Load a knowledge base directory (iar/, user/, infra/, etc.) |
-| C-c p | `my-gptel-prompt-info` | Show prompt size (chars + approximate tokens) |
-| C-c m | `my-gptel-memory-summarize` | Summarize conversation to LOGS.md/SUMMARY.md |
+| C-c a | `iar--load-agent` | Load agent personality (mirror, darwin, auditor, etc.) |
+| C-c k | `iar--load-knowledge` | Load a knowledge base directory (iar/, user/, infra/, etc.) |
+| C-c p | `iar--prompt-info` | Show prompt size (chars + approximate tokens) |
+| C-c m | `iar--memory-summarize` | Summarize conversation to LOGS.md/SUMMARY.md |
+| C-x C-c | `iar-quit` | Session-aware quit (summarize before kill) |
+
+All keybindings are defcustoms in `parameters.el` and can be changed without editing module code.
 
 ### Typical Workflow
 
 1. Start the container with `emacboros.sh --personalization ...`
 2. Emacs opens with gptel-mode active
-3. Load an agent: `C-c a mirror` (or darwin, auditor, ctfwizard)
+3. Load an agent: `C-c a mirror` (or darwin, auditor, ctfwizard, gardener)
 4. Load knowledge: `C-c k iar/` (project docs), `C-c k user/` (your identity), `C-c k infra/` (infrastructure)
 5. Check prompt size: `C-c p` (monitor context window usage)
 6. Converse with the agent. It uses tools (read_file, execute_code_local, delegate, etc.) as needed.
@@ -86,20 +98,22 @@ The mirror agent is your thinking partner. Load `knowledge/iar/` into it and ask
 Any orchestrator agent can run autonomously in cycles. Use `agent_loop.sh`:
 
 ```bash
-# Run a single darwin cycle (default agent):
+# Run a single darwin cycle (default agent, needs --self-modification for code edits):
 ./utils/agent_loop.sh --personalization ~/repos/iar-personalization --self-modification
 
 # Run a long darwin loop (50 cycles with cooldown):
 ./utils/agent_loop.sh --personalization ~/repos/iar-personalization --self-modification --max-cycles 50
 
 # Run a different agent autonomously:
-./utils/agent_loop.sh --personalization ~/repos/iar-personalization --agent auditor --max-cycles 10
+./utils/agent_loop.sh --personalization ~/repos/iar-personalization --agent gardener --max-cycles 1
 
 # With specific knowledge bases:
 ./utils/agent_loop.sh --personalization ~/repos/iar-personalization --knowledge infra/ --knowledge iar/
 ```
 
-Darwin reads its memories (injected in system prompt, truncated to 200 lines), reads TODOs/IDEAS via read_tasks, picks one thing to improve, makes the change, delegates to reviewer for code review, runs tests, commits, logs, and sleeps. One mutation per cycle. Knowledge bases (default: iar/) are loaded automatically into the system prompt.
+Darwin reads its memories (injected in system prompt, truncated to 200 lines), reads tasks via read_tasks, picks one thing to improve, makes the change, delegates to reviewer for code review, runs tests, commits, logs, and sleeps. One mutation per cycle. Knowledge bases (default: iar/) are loaded automatically into the system prompt.
+
+The gardener runs as a continuous agent: pull latest code, run tests, diagnose failures, write tasks for darwin. It does not need self-modification mode (read-only to codebase).
 
 Telegram notifications require `AGENT_TELEGRAM_BOT_TOKEN` and `AGENT_TELEGRAM_CHAT_ID` environment variables.
 

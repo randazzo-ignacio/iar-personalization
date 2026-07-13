@@ -4,14 +4,14 @@
 
 ### Self-Modification Flag
 
-The `--self-modification` flag on `emacboros.sh` sets the `EMACBOROS_SELF_MODIFICATION=1` environment variable inside the container. This is read by `init.el` after `parameters.el` loads and before `file_guard.el` loads:
+The `--self-modification` flag on `emacboros.sh` sets the `EMACBOROS_SELF_MODIFICATION=1` environment variable inside the container. This is read by `init.el` after `parameters.el` loads and before `iar-file-guard.el` loads:
 
 ```elisp
 (when (string= (getenv "EMACBOROS_SELF_MODIFICATION") "1")
-  (setq my-gptel--guard-allow-self-modification t))
+  (setq iar-guard-allow-self-modification t))
 ```
 
-When enabled, tier 2 file guard protections are relaxed (agents can modify .el files, Containerfile, git hooks). Tier 1 protections (agent prompts, base_context.org, HISTORY.log files) remain enforced regardless.
+When enabled, tier 2 file guard protections are relaxed (agents can modify .el files, Containerfile, emacboros.sh, git hooks). Tier 1 protections (agent prompts, base_context.org, common prompt templates, HISTORY.log, LOGS.md) remain enforced regardless.
 
 When disabled (default), all guards are active. Agents cannot modify any protected file.
 
@@ -66,6 +66,6 @@ This is consistent with the i.ar philosophy: honest security boundaries, not the
 
 ## Non-Container Deployment (Future)
 
-When i.ar runs outside a container (directly on host OS), the tools become the permission model. `file_guard.el` already exists for this future -- it was designed to work without container isolation. The `--enable-*` flags become the primary security boundary instead of the container.
+When i.ar runs outside a container (directly on host OS), the tools become the permission model. `iar-file-guard.el` already exists for this future -- it was designed to work without container isolation. The `--enable-*` flags become the primary security boundary instead of the container.
 
-No timeline. "Someday" means: keep the door open, don't make architectural decisions that block it.
+No timeline. "Someday" means: keep the door open, don't make architectural decisions that block it. See `future_ideas.md` for the containerless architecture migration plan.
