@@ -7,7 +7,7 @@
 | Tool | Args | Description |
 |------|------|-------------|
 | `read_file` | `filepath` (required) | Read file contents into context. Size-limited by `iar-fs-read-max-size` (default 1MB) using character count (not byte count, since `insert-file-contents` decodes and token consumption correlates with characters). Truncation notice appended when limit exceeded. Error handling via `condition-case`, returns `Error:` string on failure. |
-| `write_file` | `filepath`, `content` (required) | Create or overwrite a file. File-guard enforced. Atomic writes with suppressed save hooks. |
+| `write_file` | `filepath`, `content` (required) | Create or overwrite a file. Core function `iar--mygptel--fs-write-file`. File-guard enforced via `iar--guard-check-write`. Buffer-aware: if file is open in a buffer, checks `buffer-read-only` and `buffer-modified-p`, then erases/inserts/saves with `iar--with-suppressed-save-hooks`. If not in a buffer, uses atomic write (temp file + rename). Creates parent directories. Audit-logged via `my-gptel--audit-log-write`. Returns `Success:` or `Error:` string. |
 | `append_file` | `filepath`, `content` (required) | Append to end of file. Auto-prepends newline if needed. Used for HISTORY.log and LOGS.md. |
 | `list_directory` | `path` (required) | List directory contents. |
 | `replace_in_file` | `path`, `search_text`, `replace_text` (required) | Surgical text replacement. Fails if search_text not found (no silent no-ops). |
