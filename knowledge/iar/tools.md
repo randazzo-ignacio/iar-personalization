@@ -30,7 +30,7 @@
 |------|------|-------------|
 | `read_tasks` | none | Read all task .md files from current agent's tasks directory (`tasks/<name>/`). Each file is a separate task. |
 | `write_task` | `name`, `content` (required) | Create a new task file in `tasks/<name>/`. Refuses to overwrite existing files (use remove_task first). The .md extension is added automatically. |
-| `remove_task` | `name` (required) | Delete a task file from `tasks/<name>/`. Marks the task as done (file gone = work done). The .md extension is added automatically. |
+| `remove_task` | `name` (required) | Delete a task file from `tasks/<name>/`. Core function `iar--mygptel--tool-remove-task`. Resolves path via `iar--resolve-task-path`. Checks file existence (errors if not found). Deletes via `delete-file`. Returns "Task '<name>' removed (marked done)." on success. Error handling via `condition-case`. Requires gptel, subr-x, iar-agent-utils. |
 | `read_history` | `agent_name` (optional) | Read per-agent HISTORY.log from `audit/<name>/` or unified merged history from all agents. Core function `iar--mygptel--tool-read-history`. If agent_name provided: validates name via `iar--validate-agent-name`, reads single `audit/<name>/HISTORY.log`. If omitted: scans all agent dirs, parses timestamp lines, merges sorted by timestamp into unified timeline. Error handling via `condition-case`. Requires gptel, cl-lib, subr-x, iar-agent-utils. |
 
 ### Agent Management (agent/)
