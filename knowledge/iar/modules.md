@@ -64,6 +64,7 @@ All Emacs Lisp modules live in `init.d/` and are organized into subdirectories b
 | `tools/tasks/write_task.el` | `write_task` | Create a new task file. Refuses to overwrite existing files. |
 | `tools/tasks/remove_task.el` | `remove_task` | Delete a task file (marks done). |
 | `tools/tasks/read_history.el` | `read_history` | Read per-agent or unified HISTORY.log. |
+| `tools/notify/telegram.el` | `send_telegram` | Send Telegram notification via Bot API. Async tool (callback pattern). Message prefixed with `[AgentName]`. Credentials from `AGENT_TELEGRAM_BOT_TOKEN` and `AGENT_TELEGRAM_CHAT_ID` env vars. Uses curl POST with 15s timeout. Parses JSON response to verify `:ok` field. Audit-logged via `my-gptel--audit-log`. Requires gptel, iar-utils, iar-audit-log. Provide symbol: `iar-tool--telegram`. |
 
 ### Security and Safety
 

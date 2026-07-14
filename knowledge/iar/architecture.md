@@ -20,6 +20,8 @@ The project lives at `/root/i.ar/` and is a git repository. The Emacs configurat
         filesystem/   -- list_directory, read_file, write_file, append_file, replace_in_file
         code/         -- execute_code_local, check_elisp
         tasks/        -- read_tasks, write_task, remove_task, read_history
+        notify/       -- send_telegram
+        git/          -- git_commit
       security/       -- File guard, audit log, loop guard, output sanitizer, tool guard
       debug/          -- Buffer monitor, request logger, FSM tracer
       session/        -- Session-aware quit

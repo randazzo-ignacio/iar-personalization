@@ -52,6 +52,12 @@
 |------|------|-------------|
 | `iar--memory-summarize` | none (interactive, C-c m) | Summarize conversation to LOGS.md/SUMMARY.md via LLM. |
 
+### Notification (tools/notify/)
+
+| Tool | Args | Description |
+|------|------|-------------|
+| `send_telegram` | `message` (required) | Send Telegram notification via Bot API. Async tool (callback pattern). Message auto-prefixed with `[AgentName]`. Credentials from `AGENT_TELEGRAM_BOT_TOKEN` and `AGENT_TELEGRAM_CHAT_ID` env vars. Uses curl POST with 15s timeout. Parses JSON response to verify success. Audit-logged. |
+
 ## File Guard Protection
 
 The file guard (`iar-file-guard.el`) intercepts `write_file`, `replace_in_file`, and `append_file` calls. Protected paths are defined as defcustoms in `parameters.el` as (regex reason append-allowed) triples.
