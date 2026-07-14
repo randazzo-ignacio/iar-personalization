@@ -34,7 +34,7 @@ All Emacs Lisp modules live in `init.d/` and are organized into subdirectories b
 | `core/iar-locale.el` | UTF-8 locale configuration. Must load first. In a containerized environment, locale may not be set via environment variables, so UTF-8 is enforced at the Emacs level. Calls `set-terminal-coding-system`, `set-keyboard-coding-system`, `set-selection-coding-system` (all to `'utf-8`), `prefer-coding-system` (`'utf-8`), and `set-language-environment` (`"UTF-8"`). Key insight: `char-displayable-p` returns nil for non-ASCII when `terminal-coding-system` is nil, causing Emacs to render escape sequences instead of glyphs. Setting terminal coding system is the critical fix. Provide symbol: `iar-locale`. |
 | `core/iar-package-setup.el` | Package manager setup (MELPA, use-package). |
 | `core/iar-ui-cleanup.el` | UI cleanup (no toolbar, no scrollbar, no menu bar). |
-| `core/iar-evil-mode.el` | Evil mode (vim keybindings in Emacs). |
+| `core/iar-evil-mode.el` | Evil mode (vim keybindings in Emacs). Sets `evil-want-integration` to `t` and `evil-want-keybinding` to `nil` (both declared as defvars before use to silence byte-compiler). Loads `evil` via `use-package` with `:ensure t` and `:config (evil-mode 1)`. Loads `evil-collection` via `use-package` with `:after evil`, `:ensure t`, and `:config (evil-collection-init)`. Provide symbol: `iar-evil-mode`. |
 | `core/iar-gptel-setup.el` | Loads gptel package and applies metaconfig/gptel.el settings. |
 
 ### Agent System
