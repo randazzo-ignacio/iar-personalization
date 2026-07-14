@@ -22,7 +22,7 @@
 
 | Tool | Args | Description |
 |------|------|-------------|
-| `check_elisp` | `filepath` (required) | Byte-compile .el file and report errors/warnings. Does NOT modify the file. |
+| `check_elisp` | `filepath` (required) | Check .el file for syntax errors, unbalanced parens, and byte-compilation warnings. Two-phase: 1) `check-parens` in temp buffer, 2) `byte-compile-file` with temp .elc (cleaned up). Validates .el extension and file existence. Returns "ISSUES FOUND" or "OK" report. Does NOT modify the file. Requires gptel, bytecomp, cl-lib, subr-x. |
 
 ### Task Management (tools/tasks/)
 
