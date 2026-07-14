@@ -53,7 +53,7 @@ All Emacs Lisp modules live in `init.d/` and are organized into subdirectories b
 
 | Module | Tool | Purpose |
 |--------|------|---------|
-| `tools/filesystem/list_directory.el` | `list_directory` | List directory contents. |
+| `tools/filesystem/list_directory.el` | `list_directory` | List directory contents. Core function `iar--mygptel--fs-list-directory` (path). Expands path via `expand-file-name`. Returns newline-separated file names including hidden files (dotfiles), excludes `.` and `..` entries. Directory entries suffixed with `/` to distinguish from files. Results sorted alphabetically via `string-lessp`. Error handling via `condition-case`, returns `Error:` string on failure. Requires gptel, cl-lib. Provide symbol: `iar-tool--list-directory`. |
 | `tools/filesystem/read_file.el` | `read_file` | Read file contents. Size-limited by `iar-fs-read-max-size` (default 1MB). |
 | `tools/filesystem/write_file.el` | `write_file` | Create or overwrite a file. File-guard enforced. Atomic writes. |
 | `tools/filesystem/append_file.el` | `append_file` | Append text to end of file. Auto-prepends newline if file doesn't end with one. File-guard enforced via `iar--guard-check-append`. If file is open in a buffer, appends to buffer and saves (with read-only and unsaved-modification checks). Otherwise appends directly to disk via `write-region`. Creates parent directories if needed. Creates file if it doesn't exist. Uses `iar--with-suppressed-save-hooks` for atomic saves. Audit-logged via `my-gptel--audit-log-append`. Returns `Success:` or `Error:` string. Requires gptel, iar-file-guard, iar-audit-log, iar-utils. Provide symbol: `iar-tool--append-file`. |
