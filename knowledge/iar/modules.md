@@ -90,7 +90,7 @@ All Emacs Lisp modules live in `init.d/` and are organized into subdirectories b
 
 | Module | Purpose |
 |--------|---------|
-| `session/iar-quit.el` | Session-aware shutdown. Summarizes before killing Emacs. |
+| `session/iar-quit.el` | Session-aware shutdown (`iar-quit`). Bound to C-x C-c (replaces `save-buffers-kill-emacs`) via `global-set-key` using `iar-key-quit` defvar (parameters.el). With prefix ARG, skips summarization and quits directly. Normal quit: checks `gptel-mode` via `derived-mode-p`, calls `iar-summarize-session` (non-interactive), then quits via `save-buffers-kill-emacs` after 0.5s timer delay (so user sees messages). `condition-case` error handling -- warns user on summarization failure but quits anyway (never traps user). Skips summarization if no gptel buffer active. Requires subr-x. Declares `iar-summarize-session` (iar-memory-tools). Provide symbol: `iar-quit`. |
 
 ## Keybindings
 
