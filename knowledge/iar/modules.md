@@ -16,7 +16,7 @@ All Emacs Lisp modules live in `init.d/` and are organized into subdirectories b
 
 | Module | Purpose |
 |--------|---------|
-| `metaconfig/parameters.el` | Central parameter configuration. All tunable parameters (delegate depth, agent cycle limits, loop guard thresholds, memory limits, file read limits, personal file injection line cap, audit log rotation, base paths, keybindings, delimiters, file guard protected paths). Loaded before any init.d module. |
+| `metaconfig/parameters.el` | Central parameter configuration. All tunable parameters: base directory paths (agents, prompts, knowledge, audit, tasks), keybindings (C-c a/k/p/v/m, C-x C-c), delimiters and markers (knowledge delimiters, sanitized wrappers, injection suspect prefix, delegation result marker), git commit identity (author name/email), gptel fork path, delegate parameters (max depth, max turns), agent cycle parameters (timeout, max turns), loop guard thresholds (soft, hard, history size), memory tool parameters (max entries, timeout, max conversation chars), personal file injection line cap, file read max size, audit log rotation size, buffer monitor thresholds (warn size, hard cap), file guard protected paths (always + conditional). Loaded before any init.d module. Provide symbol: `iar-parameters`. |
 | `metaconfig/gptel.el` | Ollama backend configuration. Defines models, host, request params. |
 
 ### Shared Utilities
