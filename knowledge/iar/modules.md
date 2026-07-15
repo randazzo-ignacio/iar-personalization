@@ -96,7 +96,7 @@ All Emacs Lisp modules live in `init.d/` and are organized into subdirectories b
 
 | Key | Command | Description |
 |-----|---------|-------------|
-| C-c a | `iar--load-agent` | Load agent personality |
+| C-c a | `iar-load-agent` | Load agent personality |
 | C-c k | `iar-load-knowledge` | Load knowledge folder/file |
 | C-c p | `iar-prompt-info` | Show prompt size info |
 | C-c m | `iar-summarize-session` | Summarize conversation to memory |
