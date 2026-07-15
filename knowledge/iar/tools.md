@@ -6,8 +6,8 @@
 
 | Tool | Args | Description |
 |------|------|-------------|
-| `read_file` | `filepath` (required) | Read file contents into context. Size-limited by `iar-fs-read-max-size` (default 1MB). |
-| `write_file` | `filepath`, `content` (required) | Create or overwrite a file. File-guard enforced. Atomic writes with suppressed save hooks. |
+| `read_file` | `filepath` (required) | Read file contents into context. Size-limited by `iar-fs-read-max-size` (default 1MB) using character count (not byte count, since `insert-file-contents` decodes and token consumption correlates with characters). Truncation notice appended when limit exceeded. Error handling via `condition-case`, returns `Error:` string on failure. |
+| `write_file` | `filepath`, `content` (required) | Create or overwrite a file. Core function `iar--mygptel--fs-write-file`. File-guard enforced via `iar--guard-check-write`. Buffer-aware: if file is open in a buffer, checks `buffer-read-only` and `buffer-modified-p`, then erases/inserts/saves with `iar--with-suppressed-save-hooks`. If not in a buffer, uses atomic write (temp file + rename). Creates parent directories. Audit-logged via `my-gptel--audit-log-write`. Returns `Success:` or `Error:` string. |
 | `append_file` | `filepath`, `content` (required) | Append to end of file. Auto-prepends newline if needed. Used for HISTORY.log and LOGS.md. |
 | `list_directory` | `path` (required) | List directory contents. |
 | `replace_in_file` | `path`, `search_text`, `replace_text` (required) | Surgical text replacement. Fails if search_text not found (no silent no-ops). |
@@ -22,16 +22,16 @@
 
 | Tool | Args | Description |
 |------|------|-------------|
-| `check_elisp` | `filepath` (required) | Byte-compile .el file and report errors/warnings. Does NOT modify the file. |
+| `check_elisp` | `filepath` (required) | Check .el file for syntax errors, unbalanced parens, and byte-compilation warnings. Two-phase: 1) `check-parens` in temp buffer, 2) `byte-compile-file` with temp .elc (cleaned up). Validates .el extension and file existence. Returns "ISSUES FOUND" or "OK" report. Does NOT modify the file. Requires gptel, bytecomp, cl-lib, subr-x. |
 
 ### Task Management (tools/tasks/)
 
 | Tool | Args | Description |
 |------|------|-------------|
 | `read_tasks` | none | Read all task .md files from current agent's tasks directory (`tasks/<name>/`). Each file is a separate task. |
-| `write_task` | `name`, `content` (required) | Create a new task file in `tasks/<name>/`. Refuses to overwrite existing files (use remove_task first). The .md extension is added automatically. |
-| `remove_task` | `name` (required) | Delete a task file from `tasks/<name>/`. Marks the task as done (file gone = work done). The .md extension is added automatically. |
-| `read_history` | `agent_name` (optional) | Read per-agent HISTORY.log from `audit/<name>/` or unified merged history from all agents. |
+| `write_task` | `name`, `content` (required) | Create a new task file in `tasks/<name>/`. Core function `iar--mygptel--tool-write-task`. Resolves path via `iar--resolve-task-path`. Checks file existence -- errors if task already exists (refuses to overwrite, use remove_task first). Creates parent directory if needed. Writes via `with-temp-file`. Returns "Task '<name>' created at <full-path>" on success. Error handling via `condition-case`. Requires gptel, subr-x, iar-agent-utils. |
+| `remove_task` | `name` (required) | Delete a task file from `tasks/<name>/`. Core function `iar--mygptel--tool-remove-task`. Resolves path via `iar--resolve-task-path`. Checks file existence (errors if not found). Deletes via `delete-file`. Returns "Task '<name>' removed (marked done)." on success. Error handling via `condition-case`. Requires gptel, subr-x, iar-agent-utils. |
+| `read_history` | `agent_name` (optional) | Read per-agent HISTORY.log from `audit/<name>/` or unified merged history from all agents. Core function `iar--mygptel--tool-read-history`. If agent_name provided: validates name via `iar--validate-agent-name`, reads single `audit/<name>/HISTORY.log`. If omitted: scans all agent dirs, parses timestamp lines, merges sorted by timestamp into unified timeline. Error handling via `condition-case`. Requires gptel, cl-lib, subr-x, iar-agent-utils. |
 
 ### Agent Management (agent/)
 
@@ -50,7 +50,19 @@
 
 | Tool | Args | Description |
 |------|------|-------------|
-| `iar--memory-summarize` | none (interactive, C-c m) | Summarize conversation to LOGS.md/SUMMARY.md via LLM. |
+| `iar-summarize-session` | none (interactive, C-c m) | Summarize conversation to LOGS.md/SUMMARY.md via LLM. |
+
+### Notification (tools/notify/)
+
+| Tool | Args | Description |
+|------|------|-------------|
+| `send_telegram` | `message` (required) | Send Telegram notification via Bot API. Async tool (callback pattern per gptel `:async` convention). Core function `iar--mygptel--tool-telegram` (callback, message). Message prefixed with `[AgentName]` via `iar--get-agent-name`. Credentials from `AGENT_TELEGRAM_BOT_TOKEN` and `AGENT_TELEGRAM_CHAT_ID` env vars. Error handling: returns error if credentials missing or message empty. Uses curl POST with `-m 10` (10s curl timeout) and `:connection-type 'pipe`. Emacs-level 15s timeout via `run-with-timer` (kills process on hang). JSON payload via `json-serialize`; response parsed with `json-read` + `json-object-type 'plist`, checks `:ok` field. Audit-logged via `my-gptel--audit-log` with message truncated to 100 chars. Requires gptel, iar-utils, iar-audit-log. |
+
+### Git (tools/git/)
+
+| Tool | Args | Description |
+|------|------|-------------|
+| `git_commit` | `repo_path`, `message` (required) | Stage all changes (`git add -A`) and commit in a git repository. Sync tool using `call-process` directly (no shell, no injection surface). Validates repo directory and `.git` presence. Git identity auto-configured from `iar-git-author-name`/`iar-git-author-email` defvars (parameters.el), falls back to "i.ar Agent" / `<agent>@i.ar.local`. Checks for staged changes before committing (returns "No changes to commit" if clean). Audit-logged with repo path, truncated message (100 chars), and exit code. Returns `Success:` or `Error:` string. |
 
 ## File Guard Protection
 

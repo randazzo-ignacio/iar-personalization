@@ -72,9 +72,9 @@ cd i.ar
 | Key | Command | Description |
 |-----|---------|-------------|
 | C-c a | `iar--load-agent` | Load agent personality (mirror, darwin, auditor, etc.) |
-| C-c k | `iar--load-knowledge` | Load a knowledge base directory (iar/, user/, infra/, etc.) |
-| C-c p | `iar--prompt-info` | Show prompt size (chars + approximate tokens) |
-| C-c m | `iar--memory-summarize` | Summarize conversation to LOGS.md/SUMMARY.md |
+| C-c k | `iar-load-knowledge` | Load a knowledge base directory (iar/, user/, infra/, etc.) |
+| C-c p | `iar-prompt-info` | Show prompt size (chars + approximate tokens) |
+| C-c m | `iar-summarize-session` | Summarize conversation to LOGS.md/SUMMARY.md |
 | C-x C-c | `iar-quit` | Session-aware quit (summarize before kill) |
 
 All keybindings are defcustoms in `parameters.el` and can be changed without editing module code.
