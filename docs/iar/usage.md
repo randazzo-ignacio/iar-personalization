@@ -127,7 +127,8 @@ Environment variables:
 |-----|---------|-------------|
 | C-c a | `iar--load-agent` | Load agent personality (mirror, darwin, auditor, etc.) |
 | C-c k | `iar-load-knowledge` | Load a documentation directory (iar/, user/, infra/, etc.) |
-| C-c p | `iar-prompt-info` | Show prompt size (chars + approximate tokens) |
+| C-c p | `iar-load-personality` | Load a personality into the current agent |
+| C-c i | `iar-prompt-info` | Show prompt size (chars + approximate tokens) |
 | C-c m | `iar-summarize-session` | Summarize conversation to LOGS.md/SUMMARY.md |
 | C-x C-c | `iar-quit` | Session-aware quit (summarize before kill) |
 
@@ -139,7 +140,7 @@ All keybindings are defcustoms in `configs/keybindings.el` and can be changed wi
 2. Emacs opens with gptel-mode active
 3. Load an agent: `C-c a mirror` (or darwin, auditor, ctfwizard, gardener)
 4. Load documentation: `C-c k iar/` (project docs), `C-c k user/` (your identity), `C-c k infra/` (infrastructure)
-5. Check prompt size: `C-c p` (monitor context window usage)
+5. Check prompt size: `C-c i` (monitor context window usage)
 6. Converse with the agent. It uses tools (read_file, execute_code_local, delegate, etc.) as needed.
 7. When done: `C-c m` to summarize the session to memory.
 

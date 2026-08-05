@@ -58,7 +58,7 @@ Darwin runs autonomously and makes one change per cycle. After each cycle:
 
 ## Size Management
 
-As the knowledge base grows, loading `C-c k iar/` consumes more context. Monitor with `C-c p`. If it gets too large:
+As the knowledge base grows, loading `C-c k iar/` consumes more context. Monitor with `C-c i`. If it gets too large:
 
 1. Split into sub-knowledge bases (e.g., `iar-core/`, `iar-agents/`, `iar-infra/`)
 2. Summarize older sections into compressed form

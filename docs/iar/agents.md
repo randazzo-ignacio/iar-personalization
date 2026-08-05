@@ -29,7 +29,7 @@ The design principle: **agent prompt.org defines WHO the agent is, knowledge fil
 
 - `C-c a <name>` loads the agent personality (prompt.org + #+INCLUDE expansion + programmatic injection of personal files)
 - `C-c k <folder>` loads knowledge files on top of the personality (directory-only, all .md/.org files in the folder)
-- `C-c p` shows total prompt size
+- `C-c i` shows total prompt size
 
 This separation prevents agent duplication. Instead of having separate agents for "Elisp expert that knows i.ar" and "Reviewer that knows i.ar", you have one reviewer personality and load `docs/iar/` when needed.
 
@@ -57,7 +57,7 @@ Each agent has memory files and task files, stored in the personalization mount:
 
 Each task is a separate `.md` file. File exists = work to do. File gone = work done. One bit of state per task. Read via `read_task` tool, created via `create_task` tool, removed via `remove_task` tool.
 
-As LOGS.md, SUMMARY.md, and MEMORIES.md grow, they consume prompt tokens. Use `C-c p` to monitor total prompt size. If it gets too large, summarize and trim.
+As LOGS.md, SUMMARY.md, and MEMORIES.md grow, they consume prompt tokens. Use `C-c i` to monitor total prompt size. If it gets too large, summarize and trim.
 
 ## Delegation Architecture
 
