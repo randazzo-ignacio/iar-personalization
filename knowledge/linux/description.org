@@ -1,0 +1,1 @@
+Linux system administration: software RAID 1 + borgbackup setup, user renaming procedure.
