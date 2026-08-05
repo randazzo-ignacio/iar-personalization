@@ -27,10 +27,20 @@
 
 | Tool | Args | Description |
 |------|------|-------------|
-| `read_tasks` | none | Read all task .md files from current agent's tasks directory (`tasks/<name>/`). Each file is a separate task. |
-| `write_task` | `name`, `content` (required) | Create a new task file in `tasks/<name>/`. Core function `iar--tool-write-task`. Resolves path via `iar--resolve-task-path`. Checks file existence -- errors if task already exists (refuses to overwrite, use remove_task first). Creates parent directory if needed. Writes via `with-temp-file`. Returns "Task '<name>' created at <full-path>" on success. |
-| `remove_task` | `name` (required) | Delete a task file from `tasks/<name>/`. Core function `iar--tool-remove-task`. Resolves path via `iar--resolve-task-path`. Checks file existence (errors if not found). Deletes via `delete-file`. Returns "Task '<name>' removed (marked done)." on success. |
-| `read_history` | `agent_name` (optional) | Read per-agent HISTORY.log from `audit/<name>/` or unified merged history from all agents. Core function `iar--tool-read-history`. If agent_name provided: validates name via `iar--validate-agent-name`, reads single `audit/<name>/HISTORY.log`. If omitted: scans all agent dirs, parses timestamp lines, merges sorted by timestamp into unified timeline. |
+| `read_task` | `path` (optional) | Read tasks from the current agent's tasks directory. With no argument, returns a tree-like hierarchy of all tasks with descriptions. With a path argument (slash-separated, e.g. `track/subtask`), returns detail: if the path is a directory with subdirectories, returns the description and a tree of subdirectory descriptions; if a directory without subdirectories, returns the description and all subtask file contents; if a file, returns that single file content. |
+| `create_task` | `path`, `description` (required) | Create a new task directory with a description.org file. Path is slash-separated (e.g. `track/subtask`). Does NOT auto-create parent directories -- warns if parent task directory or description.org is missing. Description is limited to `iar-task-description-limit` characters (default 500). |
+| `write_subtask` | `path`, `content` (required) | Write a subtask .org file inside a task directory. Path is slash-separated where the last segment becomes the filename (e.g. `track/subtask-name`). Warns if the parent task directory or description.org does not exist. |
+| `remove_task` | `path` (required) | Remove a task or subtask. If the path is a directory, removes the entire directory tree (task done). If a file, removes just that file (subtask done). |
+| `read_history` | `agent_name` (optional) | Read per-agent HISTORY.log from `audit/<name>/` or unified merged history from all agents. If agent_name provided: validates name, reads single `audit/<name>/HISTORY.log`. If omitted: scans all agent dirs, parses timestamp lines, merges sorted by timestamp into unified timeline. |
+| `read_roadmap` | none | Read the ROADMAP.org file from the current agent's tasks directory. The roadmap defines task ordering, dependencies, and cycle guidelines for continuous agents. |
+| `write_roadmap` | `content` (required) | Write or overwrite the ROADMAP.org file in the current agent's tasks directory. File-guard protected (append-only for write_file). Use this tool to update the roadmap. |
+
+
+### Knowledge Base (tools/knowledge/)
+
+| Tool | Args | Description |
+|------|------|-------------|
+| `read_knowledge` | `path` (optional) | Read from the concept knowledge base directory (`knowledge/`). With no argument, returns a tree of knowledge bases with descriptions. With a path argument (slash-separated), returns: if the path is a directory with subdirectories, the description and a listing of subdirectory and file names (names only); if a directory without subdirectories, the description and full contents of all files; if a file, that single file's content. Handles arbitrary file extensions (.tex, .rb, .c, .v, .spice, .org, .md). Custom path validation allows dots for file extensions. |
 
 ### Agent Management (tools/agent/)
 
@@ -82,6 +92,7 @@ The file guard (`iar-file-guard.el`) intercepts `write_file` and `append_file` c
 - Common prompt templates: `agents.d/common/*.org` (append not allowed)
 - HISTORY.log files (append only -- overwrite and replace blocked)
 - LOGS.md files (append only -- overwrite and replace blocked)
+- ROADMAP.org files (append only -- overwrite and replace blocked. Use write_roadmap tool to update.)
 
 ### Conditionally Protected (relaxed in self-modification mode)
 - `init.el` (append not allowed)

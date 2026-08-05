@@ -20,7 +20,8 @@ The project lives at `/root/i.ar/` and is a git repository. The Emacs configurat
       tools/          -- One tool per file, categorized by role
         filesystem/   -- list_directory, read_file, write_file, append_file
         code/         -- execute_code_local, check_elisp
-        tasks/        -- read_tasks, write_task, remove_task, read_history
+        tasks/        -- read_task, create_task, write_subtask, remove_task, read_history, read_roadmap, write_roadmap
+        knowledge/    -- read_knowledge
         notify/       -- send_telegram
         git/          -- git_commit
         matrix/       -- list_matrix_chats, read_matrix_chat, send_matrix_message
@@ -30,7 +31,7 @@ The project lives at `/root/i.ar/` and is a git repository. The Emacs configurat
       session/        -- Session-aware quit
       dynamic/        -- Auto-discovered modules (darwin drops new modules here)
     configs/          -- Individual configuration files (paths, keybindings, gptel, file-guard, etc.)
-    test/            -- Test suite (run-tests.el + per-module tests, 541 tests)
+    test/            -- Test suite (run-tests.el + per-module tests, 504 tests)
   metaconfig/      -- Shell helpers (bind-mounted)
     header.sh       -- Shared shell utilities (colors, timestamp, info/warn/error)
   prompts/           -- Agent profiles and prompt templates (bind-mounted to agents.d)
@@ -61,23 +62,24 @@ The project lives at `/root/i.ar/` and is a git repository. The Emacs configurat
 
 ## Personalization
 
-Personal data (knowledge bases, per-agent files, audit logs) is separated from the i.ar repo into a git submodule at `personalization/`. The `--personalization` flag on `iar.sh` mounts three subdirectories from the personalization repo:
+Personal data (knowledge bases, per-agent files, audit logs) is separated from the i.ar repo into a git submodule at `personalization/`. The `--personalization` flag on `iar.sh` mounts four subdirectories from the personalization repo:
 
 ```
 <personalization-dir>/
-  knowledge/         -- Curated knowledge bases (injectable via C-c k)
-    user/            -- User identity, bio, domains, stack
-    iar/             -- This project's self-documentation (AI-first docs)
-    infra/           -- Ansible infrastructure documentation
-    linux/           -- Linux administration knowledge
-    ignisp/          -- ignisp programming language knowledge
-  tasks/<agent>/     -- Per-agent task files (one .md per task, file exists = work to do)
-  audit/<agent>/     -- Per-agent HISTORY.log, LOGS.md, SUMMARY.md, MEMORIES.md
-  audit/audit.log    -- Global audit log
+  docs/             -- Project documentation (injectable via C-c k)
+    iar/            -- This project's self-documentation (AI-first docs)
+    infra/          -- Ansible infrastructure documentation
+    user/           -- User identity, CV
+  knowledge/        -- Concept knowledge bases (queryable via read_knowledge tool)
+    linux/          -- Linux administration knowledge
+  tasks/<agent>/    -- Per-agent task files (description.org + subtask .org files)
+  audit/<agent>/    -- Per-agent HISTORY.log, LOGS.md, SUMMARY.md, MEMORIES.md
+  audit/audit.log   -- Global audit log
 ```
 
 Inside the container:
-- `knowledge/` -> `/root/.emacs.d/knowledge`
+- `docs/` -> `/root/.emacs.d/docs` (C-c k injectable)
+- `knowledge/` -> `/root/.emacs.d/knowledge` (read_knowledge tool)
 - `tasks/` -> `/root/.emacs.d/tasks`
 - `audit/` -> `/root/.emacs.d/audit`
 
@@ -136,7 +138,7 @@ iar.sh has two modes: interactive (default) and loop (`--loop`). Shared flags wo
 
 | Flag | Required | Mode | Description |
 |------|----------|------|-------------|
-| `--personalization PATH` | Yes | Both | Mounts knowledge/, tasks/, audit/ subdirectories into container |
+| `--personalization PATH` | Yes | Both | Mounts docs/, knowledge/, tasks/, audit/ subdirectories into container |
 | `--loop` | No | Both | Run in autonomous loop mode (requires `--agent`) |
 | `--self-modification` | No | Both | Enables tier 2 file guard relaxation for .el file edits |
 | `--ollama-host HOST:PORT` | No | Both | Override Ollama backend (default: from env or WireGuard IP) |
@@ -149,7 +151,7 @@ iar.sh has two modes: interactive (default) and loop (`--loop`). Shared flags wo
 | `--ssh-key-dir PATH` | No | Both | Directory containing SSH keys (default: ~/.ssh) |
 | `--ssh-key NAME` | No | Both | SSH key name (default: emacboros_ed25519). Skipped if key doesn't exist. |
 | `--memory LIMIT` | No | Both | Podman memory limit (default: 8g). Caps container memory. |
-| `--knowledge LABEL` | No | Both | Knowledge directory label to load (default: iar/). Can be specified multiple times. |
+| `--knowledge LABEL` | No | Both | Documentation directory label to load from docs/ (default: iar/). Can be specified multiple times. |
 | `--cycle-prompt NAME` | No | Both | Override cycle prompt file (e.g. matrix_turn). Defaults to `<agent>_cycle.org` or `agent_cycle.org`. |
 | `--status` | No | Both | Dispatch to iar-status.sh (status dashboard) |
 | `--help, -h` | No | Both | Show usage and exit |

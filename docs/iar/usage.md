@@ -91,7 +91,7 @@ cd i.ar
 
 | Flag | Required | Description |
 |------|----------|-------------|
-| `--personalization PATH` | Yes | Mounts knowledge/, tasks/, audit/ subdirectories into container |
+| `--personalization PATH` | Yes | Mounts docs/, knowledge/, tasks/, audit/ subdirectories into container |
 | `--loop` | No | Run in autonomous loop mode (requires `--agent`) |
 | `--self-modification` | No | Enables tier 2 file guard relaxation for .el file edits |
 | `--ollama-host HOST:PORT` | No | Override Ollama backend (default: from env or WireGuard IP) |
@@ -126,7 +126,7 @@ Environment variables:
 | Key | Command | Description |
 |-----|---------|-------------|
 | C-c a | `iar--load-agent` | Load agent personality (mirror, darwin, auditor, etc.) |
-| C-c k | `iar-load-knowledge` | Load a knowledge base directory (iar/, user/, infra/, etc.) |
+| C-c k | `iar-load-knowledge` | Load a documentation directory (iar/, user/, infra/, etc.) |
 | C-c p | `iar-prompt-info` | Show prompt size (chars + approximate tokens) |
 | C-c m | `iar-summarize-session` | Summarize conversation to LOGS.md/SUMMARY.md |
 | C-x C-c | `iar-quit` | Session-aware quit (summarize before kill) |
@@ -138,14 +138,14 @@ All keybindings are defcustoms in `configs/keybindings.el` and can be changed wi
 1. Start the container with `iar.sh --personalization ...`
 2. Emacs opens with gptel-mode active
 3. Load an agent: `C-c a mirror` (or darwin, auditor, ctfwizard, gardener)
-4. Load knowledge: `C-c k iar/` (project docs), `C-c k user/` (your identity), `C-c k infra/` (infrastructure)
+4. Load documentation: `C-c k iar/` (project docs), `C-c k user/` (your identity), `C-c k infra/` (infrastructure)
 5. Check prompt size: `C-c p` (monitor context window usage)
 6. Converse with the agent. It uses tools (read_file, execute_code_local, delegate, etc.) as needed.
 7. When done: `C-c m` to summarize the session to memory.
 
 ### Talking to Mirror
 
-The mirror agent is your thinking partner. Load `knowledge/iar/` into it and ask it about the codebase, design decisions, or to review a change you're planning. The mirror challenges your assumptions, pushes back on scope, and helps you think through problems.
+The mirror agent is your thinking partner. Load `docs/iar/` into it and ask it about the codebase, design decisions, or to review a change you're planning. The mirror challenges your assumptions, pushes back on scope, and helps you think through problems.
 
 ### Running Autonomous Agents
 
@@ -169,7 +169,7 @@ Any orchestrator agent can run autonomously in cycles using `iar.sh --loop`:
   --knowledge infra/ --knowledge iar/
 ```
 
-Darwin reads its memories (injected in system prompt, truncated to 200 lines), reads tasks via read_tasks, picks one thing to improve, makes the change, delegates to reviewer for code review, runs tests, commits, logs, and sleeps. One mutation per cycle. Knowledge bases (default: iar/) are loaded automatically into the system prompt.
+Darwin reads its memories (injected in system prompt, truncated to 200 lines), reads tasks via read_task, picks one thing to improve, makes the change, delegates to reviewer for code review, runs tests, commits, logs, and sleeps. One mutation per cycle. Documentation (default: iar/) is loaded automatically into the system prompt.
 
 The gardener runs as a continuous agent: pull latest code, run tests, diagnose failures, write tasks for darwin. It does not need self-modification mode (read-only to codebase).
 
@@ -181,7 +181,8 @@ The personalization repo has three subdirectories:
 
 ```
 my-personalization/
-  knowledge/         -- Your knowledge bases (injectable via C-c k)
+  docs/             -- Project documentation (injectable via C-c k)
+  knowledge/         -- Concept knowledge bases (queryable via read_knowledge tool)
     user/            -- Your identity, bio, domains, stack
     iar/             -- i.ar self-documentation (from submodule or fork)
     infra/           -- Your infrastructure docs

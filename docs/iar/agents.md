@@ -31,7 +31,7 @@ The design principle: **agent prompt.org defines WHO the agent is, knowledge fil
 - `C-c k <folder>` loads knowledge files on top of the personality (directory-only, all .md/.org files in the folder)
 - `C-c p` shows total prompt size
 
-This separation prevents agent duplication. Instead of having separate agents for "Elisp expert that knows i.ar" and "Reviewer that knows i.ar", you have one reviewer personality and load `knowledge/iar/` when needed.
+This separation prevents agent duplication. Instead of having separate agents for "Elisp expert that knows i.ar" and "Reviewer that knows i.ar", you have one reviewer personality and load `docs/iar/` when needed.
 
 ### Shared Include Files
 
@@ -55,7 +55,7 @@ Each agent has memory files and task files, stored in the personalization mount:
 
 ### Task Files (in `tasks/<name>/`)
 
-Each task is a separate `.md` file. File exists = work to do. File gone = work done. One bit of state per task. Read via `read_tasks` tool, created via `write_task` tool, removed via `remove_task` tool.
+Each task is a separate `.md` file. File exists = work to do. File gone = work done. One bit of state per task. Read via `read_task` tool, created via `create_task` tool, removed via `remove_task` tool.
 
 As LOGS.md, SUMMARY.md, and MEMORIES.md grow, they consume prompt tokens. Use `C-c p` to monitor total prompt size. If it gets too large, summarize and trim.
 
@@ -78,7 +78,7 @@ Darwin is special. It runs in a loop without human direction:
 
 1. MEMORIES.md (last 200 lines) is in system prompt -- no need to re-read
 2. Read recent HISTORY.log via read_history tool
-3. **MANDATORY:** Read tasks via read_tasks tool. One task at a time. If empty, use write_task to create one.
+3. **MANDATORY:** Read tasks via read_task tool. One task at a time. If empty, use create_task to create one.
 4. Make one small change (progress toward current task)
 5. Delegate to reviewer for code review
 6. Run tests (revert if fail)

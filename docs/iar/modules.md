@@ -18,7 +18,7 @@ Configuration was split from a single `metaconfig/parameters.el` into individual
 
 | Config File | Provide Symbol | Purpose |
 |-------------|----------------|---------|
-| `paths.el` | `iar-config-paths` | Base directory paths: `iar-agents-path`, `iar-prompts-path`, `iar-knowledge-path`, `iar-audit-path`, `iar-tasks-path`. |
+| `paths.el` | `iar-config-paths` | Base directory paths: `iar-agents-path`, `iar-prompts-path`, `iar-docs-path` (project documentation, C-c k injection), `iar-knowledge-base-path` (concept knowledge, read_knowledge tool), `iar-audit-path`, `iar-tasks-path`. |
 | `predicates.el` | `iar-config-predicates` | Predicate utilities used by other config files. |
 | `keybindings.el` | `iar-config-keybindings` | Keybindings: `iar-key-load-agent` (C-c a), `iar-key-load-knowledge` (C-c k), `iar-key-prompt-info` (C-c p), `iar-key-view-prompt` (C-c v), `iar-key-buffer-info` (C-c b), `iar-key-summarize` (C-c m), `iar-key-quit` (C-x C-c). |
 | `delimiters.el` | `iar-config-delimiters` | Delimiters and markers: knowledge delimiters, sanitized wrappers, injection suspect prefix, delegation result marker. |
@@ -83,8 +83,9 @@ Configuration was split from a single `metaconfig/parameters.el` into individual
 
 | Module | Tool | Purpose |
 |--------|------|---------|
-| `tools/tasks/read_tasks.el` | `read_tasks` | Read all task .md files from current agent's tasks directory. Each task formatted with basename and trimmed content. Provide symbol: `iar-tool--read-tasks`. |
-| `tools/tasks/write_task.el` | `write_task` | Create a new task file. Resolves path via `iar--resolve-task-path`. Refuses to overwrite existing files. Creates parent directory if needed. Provide symbol: `iar-tool--write-task`. |
+| `tools/tasks/read_task.el` | `read_task` | Read tasks from the current agent's tasks directory. With no argument, returns a tree-like hierarchy of all tasks with descriptions. With a path argument, returns detail at that level. Uses `iar--resolve-task-dir` and `iar--resolve-task-file` for path resolution. Provide symbol: `iar-tool--read-task`. |
+| `tools/tasks/create_task.el` | `create_task` | Create a new task directory with a description.org file. Path is slash-separated. Description limited to `iar-task-description-limit` characters (default 500). Provide symbol: `iar-tool--create-task`. |
+| `tools/tasks/write_subtask.el` | `write_subtask` | Write a subtask .org file inside a task directory. Path is slash-separated where the last segment becomes the filename. Provide symbol: `iar-tool--write-subtask`. |
 | `tools/tasks/remove_task.el` | `remove_task` | Delete a task file. Resolves path via `iar--resolve-task-path`. Returns "marked done" on success. Provide symbol: `iar-tool--remove-task`. |
 | `tools/tasks/read_history.el` | `read_history` | Read per-agent or unified HISTORY.log. If agent_name provided: reads single `audit/<name>/HISTORY.log`. If omitted: scans all agent dirs, merges sorted by timestamp into unified timeline. Provide symbol: `iar-tool--read-history`. |
 
@@ -169,7 +170,7 @@ tasks/<name>/     -- Task files (one .md per task, file exists = work to do)
 audit/<name>/     -- HISTORY.log, LOGS.md, SUMMARY.md, MEMORIES.md
 ```
 
-Memory files (LOGS.md, SUMMARY.md, MEMORIES.md) are injected into the agent prompt programmatically by `iar-agent-loader.el` from `audit/<name>/` (not via #+INCLUDE). The agent sees its memory as part of its system prompt without any #+INCLUDE lines for personal files. Task files are read on demand via the `read_tasks` tool from `tasks/<name>/`.
+Memory files (LOGS.md, SUMMARY.md, MEMORIES.md) are injected into the agent prompt programmatically by `iar-agent-loader.el` from `audit/<name>/` (not via #+INCLUDE). The agent sees its memory as part of its system prompt without any #+INCLUDE lines for personal files. Task files are read on demand via the `read_task` tool from `tasks/<name>/`.
 
 ## Shared Context
 
@@ -214,7 +215,7 @@ Memory files (LOGS.md, SUMMARY.md, MEMORIES.md) are injected into the agent prom
 
 ## Test Suite
 
-24 test files, 488 tests total. Run with:
+25 test files, 504 tests total. Run with:
 ```bash
 emacs --batch -l /root/.emacs.d/test/run-tests.el
 ```

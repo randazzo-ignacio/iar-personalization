@@ -26,7 +26,7 @@ The principle: the results are the proof. The method is the advantage. Don't fig
 
 i.ar's documentation lives in the knowledge base, not in READMEs or wikis. The knowledge files are written for the thing that reads them -- the LLM. This provides something no other project has:
 
-- Load `knowledge/iar/` into any agent and ask it to explain the architecture, design decisions, or code structure interactively.
+- Load `docs/iar/` into any agent and ask it to explain the architecture, design decisions, or code structure interactively.
 - It's like being able to talk to the maintainer.
 - It helps the maintainer stay consistent by conversing with the mirror agent before making changes, then updating the knowledge base after.
 
