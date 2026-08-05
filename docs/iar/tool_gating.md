@@ -4,14 +4,14 @@
 
 ### Self-Modification Flag
 
-The `--self-modification` flag on `emacboros.sh` sets the `EMACBOROS_SELF_MODIFICATION=1` environment variable inside the container. This is read by `init.el` after `parameters.el` loads and before `iar-file-guard.el` loads:
+The `--self-modification` flag on `iar.sh` sets the `EMACBOROS_SELF_MODIFICATION=1` environment variable inside the container. This is read by `init.el` after `parameters.el` loads and before `iar-file-guard.el` loads:
 
 ```elisp
 (when (string= (getenv "EMACBOROS_SELF_MODIFICATION") "1")
   (setq iar-guard-allow-self-modification t))
 ```
 
-When enabled, tier 2 file guard protections are relaxed (agents can modify .el files, Containerfile, emacboros.sh, git hooks). Tier 1 protections (agent prompts, base_context.org, common prompt templates, HISTORY.log, LOGS.md) remain enforced regardless.
+When enabled, tier 2 file guard protections are relaxed (agents can modify .el files, Containerfile, iar.sh, git hooks). Tier 1 protections (agent prompts, base_context.org, common prompt templates, HISTORY.log, LOGS.md) remain enforced regardless.
 
 When disabled (default), all guards are active. Agents cannot modify any protected file.
 

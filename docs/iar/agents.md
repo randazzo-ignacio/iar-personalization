@@ -11,6 +11,7 @@
 | **auditor** | Security audit orchestrator. Delegates recon, analysis, action. Non-destructive. | Active, used for real audits |
 | **ctfwizard** | CTF orchestrator. Delegates to specialists, coordinates attack chains. | Active, used for CTFs |
 | **gardener** | Continuous codebase monitor. Runs tests, diagnoses failures, writes task files for darwin. | Active, continuous |
+| **davinci** | Conversational study companion for degree summarization work. Curious questioner, cross-domain thinker. | Active, study |
 
 ### Sub-Agents (delegated by orchestrators)
 
@@ -95,7 +96,7 @@ Darwin's constraints:
 - One change per cycle (small, deliberate mutations)
 - Self-modification mode must be enabled for .el file changes
 
-Darwin uses the shared agent cycle infrastructure (`iar-agent-cycle.el`, `agent_loop.sh`) for autonomous operation. Any orchestrator agent can be run autonomously via `agent_loop.sh --agent <name>`.
+Darwin uses the shared agent cycle infrastructure (`iar-agent-cycle.el`, `iar.sh --loop`) for autonomous operation. Any orchestrator agent can be run autonomously via `iar.sh --loop --agent <name>`.
 
 ## Gardener Continuous Mode
 
@@ -108,29 +109,29 @@ The gardener is a continuous agent that monitors the codebase:
 5. If tests fail: diagnose and write a task for darwin
 6. Update STATE.org and HISTORY.log
 
-The gardener runs via `agent_loop.sh --agent gardener --max-cycles 1`. A systemd timer fires the cycle periodically (fresh container per tick). The gardener does not need self-modification mode (read-only to codebase).
+The gardener runs via `iar.sh --loop --agent gardener --max-cycles 1`. A systemd timer fires the cycle periodically (fresh container per tick). The gardener does not need self-modification mode (read-only to codebase).
 
 ## Continuous Agent Infrastructure
 
-Any orchestrator agent can run autonomously in a loop via `agent_loop.sh`:
+Any orchestrator agent can run autonomously in a loop via `iar.sh --loop`:
 
 ```bash
 # Single darwin cycle (needs --self-modification for code edits):
-agent_loop.sh --personalization ~/repos/iar-personalization --self-modification
+iar.sh --loop --personalization ~/repos/iar-personalization --agent darwin --self-modification
 
 # Long darwin loop (50 cycles with cooldown):
-agent_loop.sh --personalization ~/repos/iar-personalization --self-modification --max-cycles 50
+iar.sh --loop --personalization ~/repos/iar-personalization --agent darwin --self-modification --max-cycles 50
 
 # Run gardener (no self-modification needed):
-agent_loop.sh --personalization ~/repos/iar-personalization --agent gardener --max-cycles 1
+iar.sh --loop --personalization ~/repos/iar-personalization --agent gardener --max-cycles 1
 
 # With specific knowledge bases:
-agent_loop.sh --personalization ~/repos/iar-personalization --knowledge infra/ --knowledge iar/
+iar.sh --loop --personalization ~/repos/iar-personalization --knowledge infra/ --knowledge iar/
 ```
 
 Key design decisions:
-- `agent_loop.sh --max-cycles 1` IS the continuous agent runner. No elisp timer, no in-process state.
-- systemd timer fires -> oneshot service -> agent_loop.sh -> fresh container -> one tick -> container exits.
+- `iar.sh --loop --max-cycles 1` IS the continuous agent runner. No elisp timer, no in-process state.
+- systemd timer fires -> oneshot service -> iar.sh --loop -> fresh container -> one tick -> container exits.
 - Fresh container per tick is a safety feature (no state leakage between ticks).
 - Self-modification is OFF by default (only darwin needs it).
 - Per-agent cycle prompts: `<agent>_cycle.org` is tried first, falls back to `agent_cycle.org`.

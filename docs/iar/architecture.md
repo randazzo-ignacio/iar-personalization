@@ -14,22 +14,25 @@ The project lives at `/root/i.ar/` and is a git repository. The Emacs configurat
     init.el          -- Entry point, loads all modules
     init.d/           -- Modular Emacs Lisp components (auto-discovered)
       shared/         -- Consolidated utilities (iar-utils.el, iar-agent-utils.el)
-      core/           -- Locale, package setup, UI, evil mode, gptel setup
-      agent/          -- Agent loader, knowledge loader, delegate, prompt loader, reload, memory, cycle
+      core/           -- Locale, package setup, UI, evil mode, gptel setup, mount awareness
+      agent/          -- Agent loader, knowledge loader, delegate, prompt loader, memory, cycle
+      tool-call/      -- Tool call abstraction layer (iar-tool-call.el)
       tools/          -- One tool per file, categorized by role
-        filesystem/   -- list_directory, read_file, write_file, append_file, replace_in_file
+        filesystem/   -- list_directory, read_file, write_file, append_file
         code/         -- execute_code_local, check_elisp
         tasks/        -- read_tasks, write_task, remove_task, read_history
         notify/       -- send_telegram
         git/          -- git_commit
+        matrix/       -- list_matrix_chats, read_matrix_chat, send_matrix_message
+        agent/        -- delegate, reload_agent, reload_os
       security/       -- File guard, audit log, loop guard, output sanitizer, tool guard
-      debug/          -- Buffer monitor, request logger, FSM tracer
+      debug/          -- Buffer monitor, request logger, FSM tracer, status mode
       session/        -- Session-aware quit
       dynamic/        -- Auto-discovered modules (darwin drops new modules here)
+    configs/          -- Individual configuration files (paths, keybindings, gptel, file-guard, etc.)
     test/            -- Test suite (run-tests.el + per-module tests, 541 tests)
-  metaconfig/      -- Central parameter configuration (bind-mounted)
-    parameters.el  -- All tunable behavioral parameters (paths, keybindings, delimiters, thresholds, guard paths)
-    gptel.el       -- Ollama backend configuration
+  metaconfig/      -- Shell helpers (bind-mounted)
+    header.sh       -- Shared shell utilities (colors, timestamp, info/warn/error)
   prompts/           -- Agent profiles and prompt templates (bind-mounted to agents.d)
     agents/          -- One subdirectory per agent (<name>/prompt.org)
     common/          -- Prompt templates shared across agents
@@ -40,10 +43,15 @@ The project lives at `/root/i.ar/` and is a git repository. The Emacs configurat
     scripts/preflight.sh -- Security audit script (runs before Emacs)
     build.sh         -- Container build script
   utils/             -- Utility scripts
-    emacboros.sh     -- Container launch script (--personalization flag required)
-    agent_loop.sh    -- Autonomous agent loop runner (any orchestrator agent)
-    telegram.sh      -- Telegram notification helper
+    iar.sh           -- Unified entry point (interactive + loop modes, --personalization flag required)
+    iar-status.sh    -- Status dashboard for running containers and agents
+    # STATUS: Matrix server (daftpunk) killed. Dead unless redeployed.
+    iar-matrix-watcher.sh -- Matrix room watcher for agent-to-agent communication
+    personalization_audit.sh -- Validates personalization directory structure
+    telegram.sh      -- Telegram notification helper (sourced by iar.sh)
+    matrix.sh        -- Matrix helper functions (sourced by iar.sh)
     update_submodules.sh -- Submodule update helper
+    integration_test_prompt.txt -- Test prompt for integration testing
   personalization/   -- Git submodule (iar-personalization repo)
     knowledge/       -- Knowledge bases (injectable via C-c k)
     tasks/           -- Per-agent task files (one .md per task)
@@ -53,7 +61,7 @@ The project lives at `/root/i.ar/` and is a git repository. The Emacs configurat
 
 ## Personalization
 
-Personal data (knowledge bases, per-agent files, audit logs) is separated from the i.ar repo into a git submodule at `personalization/`. The `--personalization` flag on `emacboros.sh` mounts three subdirectories from the personalization repo:
+Personal data (knowledge bases, per-agent files, audit logs) is separated from the i.ar repo into a git submodule at `personalization/`. The `--personalization` flag on `iar.sh` mounts three subdirectories from the personalization repo:
 
 ```
 <personalization-dir>/
@@ -97,7 +105,7 @@ The Emacs environment runs inside a Podman container built from `quay.io/fedora/
 **Always mounted (all modes):**
 - `/root/i.ar/emacs.d` -> `/root/.emacs.d` (Emacs configuration)
 - `/root/i.ar/prompts` -> `/root/.emacs.d/agents.d` (agent profiles and prompt templates)
-- `/root/i.ar/metaconfig` -> `/root/.emacs.d/metaconfig` (parameters)
+- `/root/i.ar/metaconfig` -> `/root/.emacs.d/metaconfig` (shell helpers)
 - Personalization dir `knowledge/` -> `/root/.emacs.d/knowledge` (via `--personalization`)
 - Personalization dir `tasks/` -> `/root/.emacs.d/tasks` (via `--personalization`)
 - Personalization dir `audit/` -> `/root/.emacs.d/audit` (via `--personalization`)
@@ -122,38 +130,39 @@ Without `--self-modification`, agents have no access to the repo at all -- only 
 
 ## Flags
 
-### emacboros.sh
+### iar.sh (unified entry point)
 
-| Flag | Required | Description |
-|------|----------|-------------|
-| `--personalization PATH` | Yes | Mounts knowledge/, tasks/, audit/ subdirectories into container |
-| `--ollama-host HOST:PORT` | No | Override Ollama backend (default: from env or WireGuard IP) |
-| `--self-modification` | No | Enables tier 2 file guard relaxation for .el file edits |
-| `--local` | No | Use localhost Ollama instead of remote |
-| `--mount PATH` | No | Mount additional writable directory into container |
-| `--mount-ro PATH` | No | Mount additional read-only directory into container |
-| `--gptel-fork PATH` | No | Mount a local gptel fork directory (writable) into the container |
-| `--memory LIMIT` | No | Podman memory limit (default: 8g). Caps container memory. |
+iar.sh has two modes: interactive (default) and loop (`--loop`). Shared flags work in both modes; loop-only flags are marked.
 
-### agent_loop.sh
+| Flag | Required | Mode | Description |
+|------|----------|------|-------------|
+| `--personalization PATH` | Yes | Both | Mounts knowledge/, tasks/, audit/ subdirectories into container |
+| `--loop` | No | Both | Run in autonomous loop mode (requires `--agent`) |
+| `--self-modification` | No | Both | Enables tier 2 file guard relaxation for .el file edits |
+| `--ollama-host HOST:PORT` | No | Both | Override Ollama backend (default: from env or WireGuard IP) |
+| `--local` | No | Both | Shortcut for `--ollama-host localhost:11434` with host networking |
+| `--model NAME` | No | Both | Ollama model name (default: glm-5.2:cloud). Must be in the model list in configs/gptel.el. |
+| `--ctx N` | No | Both | Max context window in tokens (default: 1048576 = 1M). Use 131072 (128K) or 262144 (256K) for local models. |
+| `--mount PATH` | No | Both | Mount additional writable directory into container at same absolute path |
+| `--mount-ro PATH` | No | Both | Mount additional read-only directory into container at same absolute path |
+| `--gptel-fork PATH` | No | Both | Mount a local gptel fork directory (writable) into the container |
+| `--ssh-key-dir PATH` | No | Both | Directory containing SSH keys (default: ~/.ssh) |
+| `--ssh-key NAME` | No | Both | SSH key name (default: emacboros_ed25519). Skipped if key doesn't exist. |
+| `--memory LIMIT` | No | Both | Podman memory limit (default: 8g). Caps container memory. |
+| `--knowledge LABEL` | No | Both | Knowledge directory label to load (default: iar/). Can be specified multiple times. |
+| `--cycle-prompt NAME` | No | Both | Override cycle prompt file (e.g. matrix_turn). Defaults to `<agent>_cycle.org` or `agent_cycle.org`. |
+| `--status` | No | Both | Dispatch to iar-status.sh (status dashboard) |
+| `--help, -h` | No | Both | Show usage and exit |
+| `--agent NAME` | Yes (loop) | Loop only | Agent profile name |
+| `--max-cycles N` | No | Loop only | Maximum number of cycles (default: 1) |
+| `--cooldown SECONDS` | No | Loop only | Seconds to wait between cycles (default: 60) |
+| `--max-failures N` | No | Loop only | Max consecutive failures before stopping (default: 5) |
+| `--timeout SECONDS` | No | Loop only | Per-cycle timeout (default: 7200 = 120 min) |
 
-| Flag | Required | Description |
-|------|----------|-------------|
-| `--personalization PATH` | Yes | Same as emacboros.sh |
-| `--agent NAME` | No | Agent profile name (default: darwin) |
-| `--max-cycles N` | No | Maximum number of cycles (default: 1) |
-| `--cooldown SECONDS` | No | Seconds to wait between cycles (default: 60) |
-| `--max-failures N` | No | Max consecutive failures before stopping (default: 5) |
-| `--timeout SECONDS` | No | Per-cycle timeout (default: 7200 = 120 min) |
-| `--knowledge LABEL` | No | Knowledge directory label to load (default: iar/) |
-| `--ollama-host HOST:PORT` | No | Ollama API host:port |
-| `--mount PATH` | No | Mount additional writable directory |
-| `--mount-ro PATH` | No | Mount additional read-only directory |
-| `--ssh-key-dir PATH` | No | Directory containing agent SSH keys (default: ~/.ssh) |
-| `--ssh-key NAME` | No | SSH key name (default: emacboros_ed25519). Skipped if key doesn't exist. |
-| `--gptel-fork PATH` | No | Mount a local gptel fork directory |
-| `--self-modification` | No | Enable self-modification mode |
-| `--memory LIMIT` | No | Podman memory limit (default: 8g) |
+Environment variables:
+- `EMACBOROS_OLLAMA_HOST` -- Default Ollama host:port
+- `AGENT_TELEGRAM_BOT_TOKEN` -- Telegram bot token (loop mode notifications)
+- `AGENT_TELEGRAM_CHAT_ID` -- Telegram chat ID (loop mode notifications)
 
 See `tool_gating.md` for the planned `--enable-code-exec`, `--enable-elisp`, and `--danger-zone` flags.
 
@@ -178,7 +187,7 @@ Only randazzo-ar has public web ports (80/443). All other services are WireGuard
 
 ## Models
 
-Configured in `metaconfig/gptel.el`:
+Configured in `emacs.d/configs/gptel.el`:
 - `glm-5.2:cloud` (default)
 - `gpt-oss:120b`, `gpt-oss:20b`
 - `mistral-medium-3.5:128b`

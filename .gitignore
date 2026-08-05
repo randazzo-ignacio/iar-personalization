@@ -2,3 +2,4 @@ tasks/*
 !tasks/.gitkeep
 audit/*
 !audit/.gitkeep
+workspace/

@@ -48,7 +48,7 @@ Darwin runs autonomously and makes one change per cycle. After each cycle:
 | New or removed agent | `agents.md` |
 | Agent prompt.org restructured | `agents.md` |
 | File guard tiers change | `tools.md` |
-| New flag on emacboros.sh | `architecture.md` + `usage.md` |
+| New flag on iar.sh | `architecture.md` + `usage.md` |
 | Container hardening change | `architecture.md` |
 | Bind mount change | `architecture.md` |
 | New knowledge base directory | `architecture.md` |

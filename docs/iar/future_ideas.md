@@ -22,10 +22,30 @@ Eventually i.ar should work as a standalone Emacs package -- no containers, no b
 **What blocks it:**
 1. File system security (Podman read-only rootfs -> file_guard as primary boundary)
 2. Code execution isolation (container -> tool gating flags)
-3. Bash scripts as integral components (agent_loop.sh, emacboros.sh)
+3. Bash scripts as integral components (iar.sh)
 4. Personalization mount model
 
 **Key principle for now:** Don't add bash dependencies that can't be replaced with elisp later. Don't architect for containerless yet -- just don't block it.
+
+## MCP Integration (Burp Suite)
+
+Integrate Burp Suite's MCP server (PortSwigger/mcp-server) into i.ar for pentesting capabilities.
+
+**What exists:**
+- `mcp.el` (583 stars, MELPA) -- Emacs MCP client built on `jsonrpc`. Supports stdio and SSE transports.
+- `gptel-mcp.el` -- 80-line glue layer that registers MCP tools as gptel tools via `mcp-make-text-tool`.
+- PortSwigger/mcp-server -- official Burp MCP server extension. Exposes SSE endpoint at `localhost:9876`.
+
+**Integration approach:**
+- `package-install mcp` + load gptel-mcp.el (or vendor it, it's 80 lines)
+- Configure: `(setq mcp-hub-servers '(("burp" . (:url "http://localhost:9876/sse"))))`
+- Start MCP hub during init, register tools via `gptel-mcp-register-tool`
+- MCP tools appear alongside native i.ar tools in `gptel-tools`
+- Agent calls Burp tool -> gptel dispatches -> mcp.el sends JSON-RPC to Burp -> result returns
+
+**What unblocks:** Pentesting SaaS. Burp-powered security assessments with agent orchestration. Now the primary path -- Ruby migration is dead, Elisp is the permanent home.
+
+**Status:** Not yet implemented. Ready when pentesting SaaS work begins.
 
 ## CTF Network Restrictions
 
