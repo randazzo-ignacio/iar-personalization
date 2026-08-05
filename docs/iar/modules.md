@@ -18,55 +18,58 @@ Configuration was split from a single `metaconfig/parameters.el` into individual
 
 | Config File | Provide Symbol | Purpose |
 |-------------|----------------|---------|
-| `paths.el` | `iar-config-paths` | Base directory paths: `iar-agents-path`, `iar-prompts-path`, `iar-docs-path` (project documentation, C-c k injection), `iar-knowledge-base-path` (concept knowledge, read_knowledge tool), `iar-audit-path`, `iar-tasks-path`. |
+| `paths.el` | `iar-config-paths` | Base directory paths. All paths relative to `iar-personalization-path` (default: `/root/personalization`). Defines: `iar-personalization-path`, `iar-archetypes-path` (agents.d/archetypes), `iar-personalities-path` (agents.d/personalities), `iar-projects-path` (projects), `iar-cycles-path` (agents.d/cycles), `iar-prompts-path` (agents.d/common), `iar-docs-path` (docs), `iar-knowledge-base-path` (knowledge), `iar-audit-path` (audit), `iar-tasks-path` (tasks). Legacy: `iar-agents-path` (deprecated). |
 | `predicates.el` | `iar-config-predicates` | Predicate utilities used by other config files. |
-| `keybindings.el` | `iar-config-keybindings` | Keybindings: `iar-key-load-agent` (C-c a), `iar-key-load-knowledge` (C-c k), `iar-key-load-personality` (C-c p), `iar-key-prompt-info` (C-c i), `iar-key-view-prompt` (C-c v), `iar-key-buffer-info` (C-c b), `iar-key-summarize` (C-c m), `iar-key-quit` (C-x C-c). |
+| `keybindings.el` | `iar-config-keybindings` | Keybindings: `iar-key-load-agent` (C-c a), `iar-key-load-knowledge` (C-c k), `iar-key-load-personality` (C-c p), `iar-key-prompt-info` (C-c i), `iar-key-view-prompt` (C-c v), `iar-key-buffer-info` (C-c b), `iar-key-quit` (C-x C-c). Note: `iar-key-summarize` (C-c m) is defined but the summarizer module has been removed. |
 | `delimiters.el` | `iar-config-delimiters` | Delimiters and markers: knowledge delimiters, sanitized wrappers, injection suspect prefix, delegation result marker. |
 | `git.el` | `iar-config-git` | Git commit identity: `iar-git-author-name`, `iar-git-author-email`. |
 | `fork.el` | `iar-config-fork` | Gptel fork path: `iar-fork-path`. |
 | `delegate.el` | `iar-config-delegate` | Delegate parameters: `iar-delegate-max-depth`, `iar-delegate-max-turns`. |
 | `cycle.el` | `iar-config-cycle` | Cycle parameters: `iar-cycle-timeout`, `iar-cycle-max-turns`. |
 | `loop-guard.el` | `iar-config-loop-guard` | Loop guard thresholds: `iar-loop-soft-threshold`, `iar-loop-hard-threshold`, `iar-loop-history-size`. |
-| `memory.el` | `iar-config-memory` | Memory tool parameters: `iar-memory-max-entries`, `iar-memory-timeout`, `iar-memory-max-conversation-chars`, `iar-personal-file-max-lines`. |
+| `memory.el` | `iar-config-memory` | Memory parameters: `iar-personal-file-max-lines` (max lines injected from LOGS.md/STATE.org). Legacy fields `iar-memory-max-entries`, `iar-memory-timeout`, `iar-memory-max-conversation-chars` remain but the summarizer module that used them is removed. |
 | `file-guard.el` | `iar-config-file-guard` | File guard protected paths: `iar-guard-always-protected`, `iar-guard-conditional-protected`. |
 | `debug.el` | `iar-config-debug` | Debug/size parameters: `iar-fs-read-max-size`, `iar-tool-result-max-chars`, `iar-audit-log-max-size`, `iar-buffer-warn-size`, `iar-buffer-hard-cap`. |
 | `gptel.el` | `iar-config-gptel` | Ollama backend configuration. Defines models, host, request params. |
+| `tasks.el` | `iar-config-tasks` | Task system parameters: `iar-task-description-limit` (default 500, max chars for task descriptions in create_task). |
 
 ## Shared Utilities
 
 | Module | Purpose |
 |--------|---------|
-| `init.d/shared/iar-utils.el` | Consolidated utilities: `iar--get-agent-name` (agent name resolution -- checks buffer-local then global default for `iar--current-agent-name`, falls back to `iar--current-agent-file` also buffer-local then global, derives name from prompt.org path, returns "unknown" if none set), `iar--non-blank-p`, `iar--path-traversal-check`, `iar--approx-token-count` (chars -> tokens via ~4 chars/token heuristic), `iar--audit-log-path` (defconst -- constructed from `iar-audit-path` defvar + `user-emacs-directory`), `iar--with-suppressed-save-hooks` (macro binding 5 hooks to nil). Declares `iar-audit-path` defvar (from configs/paths.el). Requires subr-x. Provide symbol: `iar-utils`. |
+| `init.d/shared/iar-utils.el` | Consolidated utilities: `iar--get-agent-name` (agent name resolution -- checks buffer-local then global default for `iar--current-agent-name`, falls back to `iar--current-agent-file`, derives name from path, returns "unknown" if none set), `iar--non-blank-p`, `iar--path-traversal-check`, `iar--approx-token-count` (chars -> tokens via ~4 chars/token heuristic), `iar--audit-log-path` (defconst -- constructed from `iar-audit-path` + `iar-personalization-path`), `iar--with-suppressed-save-hooks` (macro binding 5 hooks to nil). Declares `iar-audit-path` defvar (from configs/paths.el). Requires subr-x. Provide symbol: `iar-utils`. |
 | `init.d/shared/iar-agent-utils.el` | Agent validation and path resolution: `iar--valid-name-p` (agent/task name validation with string anchors to prevent multi-line bypass), `iar--validate-agent-name`/`iar--validate-task-name` (error wrappers), `iar--resolve-agent-dir` (resolves per-agent directory under "tasks" or "audit" with `file-truename` traversal defense), `iar--resolve-agent-tasks-dir`/`iar--resolve-agent-audit-dir` (convenience wrappers), `iar--resolve-task-path` (adds `.md` extension, validates name, checks traversal). Backward compat aliases: `iar--valid-agent-name-p`, `iar--valid-task-name-p`, `iar--get-agent-dir`. Declares defvars `iar-tasks-path`, `iar-audit-path` (from configs/paths.el). Requires cl-lib, subr-x, iar-utils. Provide symbol: `iar-agent-utils`. |
 
 ## Core Infrastructure
 
 | Module | Purpose |
 |--------|---------|
-| `init.el` | Entry point. Loads configs/ files first, then shared utilities, then sets self-modification mode from `EMACBOROS_SELF_MODIFICATION` env var. Loads all modules explicitly in dependency order. Auto-discovers `init.d/dynamic/*.el` at the end. Sets `load-prefer-newer t`. |
+| `init.el` | Entry point. Loads configs/ files first, then shared utilities, then sets self-modification mode from `EMACBOROS_SELF_MODIFICATION` env var. Sets `iar--current-project` from `IAR_PROJECT` env var (default: "iar"). Loads all modules explicitly in dependency order. Auto-discovers `init.d/dynamic/*.el` at the end. Sets `load-prefer-newer t`. |
 | `core/iar-locale.el` | UTF-8 locale configuration. Must load first. Enforces UTF-8 at Emacs level for containerized environments where locale env vars may not be set. Provide symbol: `iar-locale`. |
 | `core/iar-package-setup.el` | Package manager setup. Adds MELPA to `package-archives`, calls `package-initialize`. Does NOT load `use-package` -- individual modules use their own `use-package` forms. Provide symbol: `iar-package-setup`. |
 | `core/iar-ui-cleanup.el` | UI cleanup. Disables `menu-bar-mode` and `tool-bar-mode` (fboundp-guarded). Sets `inhibit-startup-message` to t. Provide symbol: `iar-ui-cleanup`. |
 | `core/iar-evil-mode.el` | Evil mode (vim keybindings). Loads `evil` and `evil-collection` via `use-package`. Provide symbol: `iar-evil-mode`. |
 | `core/iar-gptel-setup.el` | Loads gptel package and applies configs/gptel.el settings. Fork override: if `iar-fork-path` is a valid directory, prepends it to `load-path` so the fork takes precedence over the ELPA-installed package. Provide symbol: `iar-gptel-setup`. |
-| `core/iar-mount-awareness.el` | Extra mount discovery. Reads `IAR_EXTRA_MOUNTS` env var (comma-separated `path:mode` pairs) at load time. `iar--extra-mounts-prompt-string` returns formatted string for system prompt injection. Integrated with `iar-agent-loader.el`. Provide symbol: `iar-mount-awareness`. |
+| `core/iar-mount-awareness.el` | Extra mount discovery. Reads `IAR_EXTRA_MOUNTS` env var (comma-separated `path:mode` pairs) at load time. `iar--extra-mounts-prompt-string` returns formatted string for system prompt injection. Integrated with `iar-prompt-assembly.el`. Provide symbol: `iar-mount-awareness`. |
 
 ## Tool Call Layer
 
 | Module | Purpose |
 |--------|---------|
-| `init.d/tool-call/iar-tool-call.el` | **The single integration point with gptel.** This is the ONLY module that touches gptel's internal FSM, curl internals, or tool processing. All other i.ar modules hook into this layer, not gptel directly. **Owns:** Tool registration (`iar-tool-register`, `iar-tool-make` -- wraps `gptel-make-tool` + `add-to-list`), i.ar hook variables (`iar-pre-tool-call-functions`, `iar-post-tool-call-functions`, `iar-post-response-functions` -- bridged to gptel's hooks), result truncation (`iar--truncate-tool-result` -- middle-truncation via `:around` advice on `gptel--process-tool-call`), audit logging (every tool call logged with status in post-tool-call bridge), token usage tracking (`iar--usage-parse-tokens` -- parses `prompt_eval_count` and `eval_count` from Ollama responses via `:before` advice on `gptel-curl--stream-cleanup` and `gptel-curl--sentinel`). Global accumulators: `iar--usage-requests`, `iar--usage-input-tokens`, `iar--usage-output-tokens`, `iar--usage-last-input`, `iar--usage-last-output`, `iar--usage-model`. `iar--usage-reset` (called at cycle start), `iar--usage-totals` (returns plist), `iar--usage-write-log` (writes to `audit/<agent>/USAGE.log` on `kill-emacs-hook`). Self-installs via `iar--tool-call-setup` at load time. **If gptel's internals change, only this file needs updating.** Requires gptel, cl-lib, subr-x, json, iar-utils, iar-audit-log. Provide symbol: `iar-tool-call`. |
+| `init.d/tool-call/iar-tool-call.el` | **The single integration point with gptel.** This is the ONLY module that touches gptel's internal FSM, curl internals, or tool processing. All other i.ar modules hook into this layer, not gptel directly. **Owns:** Tool registration (`iar-tool-register`, `iar-tool-make` -- wraps `gptel-make-tool` + `add-to-list`), i.ar hook variables (`iar-pre-tool-call-functions`, `iar-post-tool-call-functions`, `iar-post-response-functions` -- bridged to gptel's hooks), result truncation (`iar--truncate-tool-result` -- middle-truncation via `:around` advice on `gptel--process-tool-call`), audit logging (every tool call logged with status in post-tool-call bridge), token usage tracking (`iar--usage-parse-tokens` -- parses `prompt_eval_count` and `eval_count` from Ollama responses via `:before` advice on `gptel-curl--stream-cleanup` and `gptel-curl--sentinel`). Global accumulators: `iar--usage-requests`, `iar--usage-input-tokens`, `iar--usage-output-tokens`, `iar--usage-last-input`, `iar--usage-last-output`, `iar--usage-model`. `iar--usage-reset` (called at cycle start), `iar--usage-totals` (returns plist), `iar--usage-write-log` (writes to `audit/<project>/<personality>/USAGE.log` on `kill-emacs-hook`). Self-installs via `iar--tool-call-setup` at load time. **If gptel's internals change, only this file needs updating.** Requires gptel, cl-lib, subr-x, json, iar-utils, iar-audit-log. Provide symbol: `iar-tool-call`. |
 
 ## Agent System
 
 | Module | Purpose |
 |--------|---------|
-| `agent/iar-agent-loader.el` | **C-c a** -- Interactive agent profile loader (`iar-load-agent`). Discovers `agents.d/agents/<name>/prompt.org`, expands `#+INCLUDE` directives, injects personal files (LOGS.md, SUMMARY.md, MEMORIES.md) from `audit/<name>/` programmatically (truncated to last N lines via `iar-personal-file-max-lines`). Darwin's MEMORIES.md replaces LOGS.md + SUMMARY.md when MEMORIES.md has content but LOGS/SUMMARY don't. Sets `gptel-system-prompt` (buffer-local). Integrates with `iar-mount-awareness.el`. Tracks agent name and file via buffer-local + global `iar--current-agent-name` and `iar--current-agent-file`. Resets knowledge state on agent switch. Path traversal defense via `file-truename`. Keybinding via `iar-key-load-agent` defvar (configs/keybindings.el). Requires cl-lib, iar-agent-utils. Provide symbol: `iar-agent-loader`. |
-| `agent/iar-knowledge-loader.el` | **C-c k** -- Interactive knowledge folder loader (`iar-load-knowledge`). Reads all `.md`/`.org` files from a `knowledge/<folder>/` directory (non-recursive, sorted), appends to system prompt with delimiters from configs/delimiters.el. Supports multiple knowledge bases simultaneously. Idempotent. Buffer-local state: `iar--knowledge-base-prompt`, `iar--knowledge-loaded-labels`, `iar--knowledge-blocks`. `iar-load-knowledge-dir` (non-interactive, used by agent_cycle.el for batch mode). **C-c p** -- Personality loader (`iar-load-personality`). **C-c i** -- Prompt size info (`iar-prompt-info`). Requires cl-lib, subr-x, iar-utils. Provide symbol: `iar-knowledge-loader`. |
+| `agent/iar-prompt-assembly.el` | **Prompt assembly engine.** Assembles a complete system prompt from three primitives: archetype + personality + project. Assembly order: base_context.org, archetype content, personality content, project objective, auto-loaded knowledge (from project `#+KNOWLEDGE`), memory injection (mode-based), mount info. Key functions: `iar--assemble-prompt` (main entry, returns plist with :prompt, :tools, :mode, :archetype, :personality, :project), `iar--read-archetype`, `iar--read-personality`, `iar--read-base-context`, `iar--parse-mode` (extracts `#+MODE:` from archetype), `iar--inject-memory` (mode-based: LOGS.md for interactive, STATE.org for autonomous/continuous, none for delegated), `iar--auto-load-knowledge` (reads doc labels from project, loads via `iar--read-knowledge-files`), `iar--filter-tools` (filters `gptel-tools` to only those in project `#+TOOLS` list). Requires cl-lib, subr-x, ox, iar-utils, iar-project-parser, iar-knowledge-loader, iar-mount-awareness. Provide symbol: `iar-prompt-assembly`. |
+| `agent/iar-project-parser.el` | **Project file parser.** Parses `personalization/projects/<name>.org` files. Extracts `#+KNOWLEDGE` (doc labels), `#+TOOLS` (tool name list), `#+MOUNTS` (path:mode pairs), `#+OBJECTIVE` (free text). Key functions: `iar--parse-project-metadata`, `iar--parse-project`, `iar--load-project`, `iar--load-or-create-project` (creates template project if not found), `iar--project-candidates` (lists available projects for completion), `iar--create-project` (writes minimal template). Requires cl-lib, subr-x. Provide symbol: `iar-project-parser`. |
+| `agent/iar-agent-loader.el` | **C-c a** -- Interactive agent loader (`iar-load-agent`). Prompts for personality selection, assembles prompt with interactive archetype + selected personality + default project. **C-c p** -- Personality switcher (`iar-load-personality-interactive`). Re-assembles with current archetype + project. Key state: `iar--current-archetype`, `iar--current-personality`, `iar--current-project`, `iar--current-mode` (all buffer-local). `iar-personality-archetype-map` (hardcoded personality-to-archetype mapping). `iar--archetype-for-personality` (lookup), `iar--project-for-personality` (if project file matching personality exists, use it; else "iar"). `iar--setup-assembled-buffer` (calls `iar--assemble-prompt`, sets all buffer-local state, resets knowledge state). Backward compat: `iar--current-agent-name` = personality name, `iar--current-agent-file` = personality file path. Requires cl-lib, subr-x, iar-agent-utils, iar-utils, iar-prompt-assembly, iar-project-parser. Provide symbol: `iar-agent-loader`. |
+| `agent/iar-knowledge-loader.el` | **C-c k** -- Interactive knowledge folder loader (`iar-load-knowledge`). Reads all `.md`/`.org` files from a `docs/<folder>/` directory (non-recursive, sorted), appends to system prompt with delimiters from configs/delimiters.el. Supports multiple knowledge bases simultaneously. Idempotent. Buffer-local state: `iar--knowledge-base-prompt`, `iar--knowledge-loaded-labels`, `iar--knowledge-blocks`. `iar-load-knowledge-dir` (non-interactive, used by assembly engine and agent_cycle.el for batch mode). **C-c p** -- Personality loader (`iar-load-personality`) -- re-exported from iar-agent-loader.el. **C-c i** -- Prompt size info (`iar-prompt-info`). Requires cl-lib, subr-x, iar-utils. Provide symbol: `iar-knowledge-loader`. |
 | `agent/iar-buffer-info.el` | **C-c b** -- Buffer size info (`iar-buffer-info`): displays conversation buffer size in chars and approx tokens. **C-c v** -- View full system prompt (`iar-view-prompt`): displays entire system prompt in read-only `view-mode` buffer. Split from `iar-knowledge-loader.el` per GUIDELINES.org rule 5 (one responsibility per file). Requires subr-x, iar-utils. Provide symbol: `iar-buffer-info`. |
-| `agent/iar-prompt-loader.el` | Loads prompt templates from `agents.d/common/*.org`. Single function `iar--load-prompt` (name) -- constructs path, appends `.org` extension, reads file content, trims trailing whitespace. Signals `error` if file not found. Used by delegate, agent_cycle, loop_guard, memory_tools. Requires subr-x. Provide symbol: `iar-prompt-loader`. |
-| `agent/iar-memory-tools.el` | **C-c m** -- Memory summarization (`iar-summarize-session`). Sends conversation to LLM for rolling summary (old SUMMARY + conversation -> new concise SUMMARY), stores in SUMMARY.md. Synchronous via `make-process` + `accept-process-output`. Uses `memory_summarizer.org` prompt template. Auto-reloads agent profile after update. Conversation truncated to `iar-memory-max-conversation-chars` if exceeded. Parameters from configs/memory.el. Backward compat alias: `iar-summarize-memories` -> `iar-summarize-session`. Requires gptel, json, cl-lib, subr-x, iar-agent-utils. Provide symbol: `iar-memory-tools`. |
-| `agent/iar-agent-cycle.el` | Autonomous agent cycle runner (`iar-run-cycle`). Any orchestrator agent can run autonomously in a loop. Has its own cycle buffer (`*<agent>-cycle*`), timeout, max turns, continue prompting. Supports `:agent`, `:knowledge`, `:self-modification`, `:timeout`, `:prompt` parameters. Per-agent cycle prompt loading (`<agent>_cycle.org` fallback to `agent_cycle.org`). Continue prompt loading (`agent_cycle_continue.org` fallback to defconst). Completion detection via `iar--cycle-complete-p` (LOOP_COMPLETE vs CYCLE_COMPLETE markers). Continuation via `gptel-post-response-functions` hook. Cycle logging to `audit/<agent>/cycle.log`. Token usage tracking (resets accumulators at cycle start, includes token counts in results). Telegram notification on cycle end via `kill-emacs-hook`. Batch mode event loop: `accept-process-output` with FSM state monitoring. Buffer-local: `gptel-stream t`, `gptel-confirm-tool-calls nil`. Exit codes: 0 (cycle complete), 1 (timeout), 2 (LOOP_COMPLETE). `iar-darwin-run-cycle` backward compat alias. Requires gptel, cl-lib, subr-x, json. Provide symbol: `iar-agent-cycle`. |
+| `agent/iar-personality-loader.el` | **Compatibility shim.** Personality loading is now handled by `iar-agent-loader.el`. This file provides `iar--personalities-dir` for backward compat. Requires iar-agent-loader. Provide symbol: `iar-personality-loader`. |
+| `agent/iar-prompt-loader.el` | Loads prompt templates from `agents.d/common/*.org`. Single function `iar--load-prompt` (name) -- constructs path, appends `.org` extension, reads file content, trims trailing whitespace. Signals `error` if file not found. Used by delegate, agent_cycle, loop_guard. Requires subr-x. Provide symbol: `iar-prompt-loader`. |
+| `agent/iar-agent-cycle.el` | Autonomous agent cycle runner (`iar-run-cycle`). Any personality with an autonomous/continuous archetype can run autonomously in a loop. Has its own cycle buffer (`*<agent>-cycle*`), timeout, max turns, continue prompting. Supports `:agent`, `:knowledge`, `:self-modification`, `:timeout`, `:prompt` parameters. `iar-personality-cycle-map` maps personalities to cycle files (darwin -> self_modification, gardener -> monitoring, librarian -> documentation_sync). Per-agent cycle prompt loading (`<personality>_cycle.org` fallback to `agent_cycle.org`). Continue prompt loading (`agent_cycle_continue.org` fallback to defconst). Completion detection via `iar--cycle-complete-p` (LOOP_COMPLETE vs CYCLE_COMPLETE markers). Continuation via `gptel-post-response-functions` hook. Cycle logging to `audit/<project>/<personality>/cycle.log`. Token usage tracking. Telegram notification on cycle end via `kill-emacs-hook`. Batch mode event loop: `accept-process-output` with FSM state monitoring. Uses `iar--archetype-for-personality` and `iar--project-for-personality` to resolve archetype and project from personality name. Exit codes: 0 (cycle complete), 1 (timeout), 2 (LOOP_COMPLETE). `iar-darwin-run-cycle` backward compat alias. Requires gptel, cl-lib, subr-x, json. Provide symbol: `iar-agent-cycle`. |
 
 ## Filesystem and Code Tools (one tool per file)
 
@@ -84,10 +87,12 @@ Configuration was split from a single `metaconfig/parameters.el` into individual
 | Module | Tool | Purpose |
 |--------|------|---------|
 | `tools/tasks/read_task.el` | `read_task` | Read tasks from the current agent's tasks directory. With no argument, returns a tree-like hierarchy of all tasks with descriptions. With a path argument, returns detail at that level. Uses `iar--resolve-task-dir` and `iar--resolve-task-file` for path resolution. Provide symbol: `iar-tool--read-task`. |
-| `tools/tasks/create_task.el` | `create_task` | Create a new task directory with a description.org file. Path is slash-separated. Description limited to `iar-task-description-limit` characters (default 500). Provide symbol: `iar-tool--create-task`. |
+| `tools/tasks/create_task.el` | `create_task` | Create a new task directory with a description.org file. Path is slash-separated. Description limited to `iar-task-description-limit` characters (default 500, from configs/tasks.el). Provide symbol: `iar-tool--create-task`. |
 | `tools/tasks/write_subtask.el` | `write_subtask` | Write a subtask .org file inside a task directory. Path is slash-separated where the last segment becomes the filename. Provide symbol: `iar-tool--write-subtask`. |
 | `tools/tasks/remove_task.el` | `remove_task` | Delete a task file. Resolves path via `iar--resolve-task-path`. Returns "marked done" on success. Provide symbol: `iar-tool--remove-task`. |
-| `tools/tasks/read_history.el` | `read_history` | Read per-agent or unified HISTORY.log. If agent_name provided: reads single `audit/<name>/HISTORY.log`. If omitted: scans all agent dirs, merges sorted by timestamp into unified timeline. Provide symbol: `iar-tool--read-history`. |
+| `tools/tasks/read_history.el` | `read_history` | Read per-agent or unified HISTORY.log. If agent_name provided: reads single `audit/<project>/<name>/HISTORY.log`. If omitted: scans all agent dirs, merges sorted by timestamp into unified timeline. Provide symbol: `iar-tool--read-history`. |
+| `tools/tasks/read_roadmap.el` | `read_roadmap` | Read the ROADMAP.org file from the current agent's tasks directory. The roadmap defines task ordering, dependencies, and cycle guidelines for continuous agents. Provide symbol: `iar-tool--read-roadmap`. |
+| `tools/tasks/write_roadmap.el` | `write_roadmap` | Write or overwrite the ROADMAP.org file in the current agent's tasks directory. File-guard protected (append-only for write_file). Use this tool to update the roadmap. Provide symbol: `iar-tool--write-roadmap`. |
 
 ## Notification and Git Tools
 
@@ -101,24 +106,24 @@ Configuration was split from a single `metaconfig/parameters.el` into individual
 
 | Module | Tool | Purpose |
 |--------|------|---------|
-| `tools/matrix/send_matrix_message.el` | `send_matrix_message` | Send a text message to a Matrix room via Client-Server API. Async tool. Credentials: per-agent Matrix token, resolved from agent name via env var (e.g., `MIRROR_BOT_MATRIX_TOKEN`). Token resolution and server URL shared with other matrix tools. Provide symbol: `iar-tool--send-matrix-message`. |
-| `tools/matrix/read_matrix_chat.el` | `read_matrix_chat` | Read recent messages from a Matrix room. Sync tool (curl is fast). Returns formatted transcript with timestamps and sender names. Provide symbol: `iar-tool--read-matrix-chat`. |
+| `tools/matrix/send_matrix_message.el` | `send_matrix_message` | Send a text message to a Matrix room via Client-Server API. Async tool. Credentials: per-agent Matrix token, resolved from agent name via env var. Provide symbol: `iar-tool--send-matrix-message`. |
+| `tools/matrix/read_matrix_chat.el` | `read_matrix_chat` | Read recent messages from a Matrix room. Sync tool. Returns formatted transcript with timestamps and sender names. Provide symbol: `iar-tool--read-matrix-chat`. |
 | `tools/matrix/list_matrix_chats.el` | `list_matrix_chats` | List joined rooms for the current agent's Matrix account. Sync tool. Returns room IDs. Provide symbol: `iar-tool--list-matrix-chats`. |
 
 ## Agent Tools (tools/agent/)
 
 | Module | Tool | Purpose |
 |--------|------|---------|
-| `tools/agent/delegate.el` | `delegate` | Async multi-agent delegation. Spawns sub-agent buffers with timeout handling, max depth limiting, unknown tool blocking, text-only turn re-prompting. Result extraction via `=== DELEGATION RESULT ===` marker. Provide symbol: `iar-delegate-tool`. |
+| `tools/agent/delegate.el` | `delegate` | Async multi-agent delegation. Spawns sub-agent buffers with timeout handling, max depth limiting, unknown tool blocking, text-only turn re-prompting. Resolves archetype and project from personality name via `iar--archetype-for-personality` and `iar--project-for-personality`. Assembles prompt via `iar--assemble-prompt`. Applies tool gating from project `#+TOOLS`. Result extraction via `=== DELEGATION RESULT ===` marker. Provide symbol: `iar-delegate-tool`. |
 | `tools/agent/reload_os.el` | `reload_os` | Re-evaluate init.el. Rebuilds gptel-tools list. Use after modifying .el files. Provide symbol: `iar-reload-os`. |
-| `tools/agent/reload_agent.el` | `reload_agent` | Re-read agent prompt.org and update system prompt in current buffer. Optional agent-name arg. Path traversal defense. Provide symbol: `iar-reload-agent`. |
+| `tools/agent/reload_agent.el` | `reload_agent` | Re-read personality .org and update system prompt in current buffer. Re-assembles via `iar--setup-assembled-buffer` with current archetype + project. Optional agent-name arg. Provide symbol: `iar-reload-agent`. |
 
 ## Security and Safety
 
 | Module | Purpose |
 |--------|---------|
 | `security/iar-output-sanitizer.el` | Output filtering for tool results. Defense-in-depth -- primary defense is PROMPT INJECTION RESISTANCE directives in base_context.org. `iar--sanitize-external-output` (text): strips control chars (`iar--strip-control-chars` -- ANSI, zero-width, bidi), neutralizes wrapper tags, flags injection lines. Buffer-local `iar--sanitize-exec-output` flag (nil by default). Requires subr-x. Provide symbol: `iar-output-sanitizer`. |
-| `security/iar-file-guard.el` | Protected path enforcement. Two tiers: always-protected (agent prompts, base context, history logs, LOGS.md) and conditionally-protected (.el files, Containerfile, iar.sh, git hooks). Protected paths defined as defcustoms in configs/file-guard.el with (regex reason append-allowed) triples. `iar--guard-check-write`, `iar--guard-check-replace`, `iar--guard-check-append`. `iar-guard-allow-self-modification` defcustom intentionally lacks `:safe` property. Self-modification mode relaxes tier 2 but never tier 1. Requires cl-lib, subr-x. Provide symbol: `iar-file-guard`. |
+| `security/iar-file-guard.el` | Protected path enforcement. Two tiers: always-protected (archetype/personality/cycle files, base context, history logs, LOGS.md, STATE.org) and conditionally-protected (.el files, Containerfile, iar.sh, git hooks). Protected paths defined as defcustoms in configs/file-guard.el with (regex reason append-allowed) triples. `iar--guard-check-write`, `iar--guard-check-replace`, `iar--guard-check-append`. `iar-guard-allow-self-modification` defcustom intentionally lacks `:safe` property. Self-modification mode relaxes tier 2 but never tier 1. Requires cl-lib, subr-x. Provide symbol: `iar-file-guard`. |
 | `security/iar-audit-log.el` | Audit logging for all file operations and command executions. Log at `audit/audit.log`. `iar--audit-log` (tool detail) is the main entry point -- best-effort via condition-case. Wrapper functions: `iar--audit-log-write`, `iar--audit-log-replace`, `iar--audit-log-append`, `iar--audit-log-exec`. Rotation at `iar-audit-log-max-size` (from configs/debug.el). Requires subr-x, iar-utils. Provide symbol: `iar-audit-log`. |
 | `security/iar-loop-guard.el` | Detects repetitive tool call loops via `iar-pre-tool-call-functions` hook (i.ar's own hook, not gptel's). Soft threshold (default 3): after N identical consecutive calls, tool is blocked and correction message sent. Hard threshold (default 6): entire request stopped. History ring size 20. Args signature via md5. Provide symbol: `iar-loop-guard`. |
 | `security/iar-tool-guard.el` | Unknown tool blocking utility. `iar--block-unknown-tools` intercepts hallucinated tool names at the pre-tool-call stage. Returns `(:block message)` for unknown tools. Uses dynamic variable `gptel-tools` for tool list resolution. Used by delegate buffers and cycle buffers. Requires cl-lib. Provide symbol: `iar-tool-guard`. |
@@ -133,52 +138,46 @@ Configuration was split from a single `metaconfig/parameters.el` into individual
 
 | Module | Purpose |
 |--------|---------|
-| `session/iar-quit.el` | Session-aware shutdown (`iar-quit`). Bound to C-x C-c. With prefix ARG, skips summarization. Normal quit: checks `gptel-mode`, calls `iar-summarize-session` (non-interactive), then quits via `save-buffers-kill-emacs` after 0.5s delay. `condition-case` error handling -- warns on summarization failure but quits anyway. Requires subr-x. Provide symbol: `iar-quit`. |
+| `session/iar-quit.el` | Session-aware shutdown (`iar-quit`). Bound to C-x C-c. With prefix ARG, skips summarization. Normal quit: checks `gptel-mode`, then quits via `save-buffers-kill-emacs` after 0.5s delay. `condition-case` error handling. The memory summarizer (`iar-summarize-session`) has been removed -- quit no longer calls it. Requires subr-x. Provide symbol: `iar-quit`. |
 
 ## Keybindings
 
 | Key | Command | Description |
 |-----|---------|-------------|
-| C-c a | `iar-load-agent` | Load agent personality |
-| C-c k | `iar-load-knowledge` | Load knowledge folder/file |
-| C-c p | `iar-load-personality` | Load a personality |
+| C-c a | `iar-load-agent` | Select personality and assemble prompt (interactive archetype + default project) |
+| C-c k | `iar-load-knowledge` | Load knowledge folder/file on top of assembled prompt |
+| C-c p | `iar-load-personality-interactive` | Switch personality (re-assemble with current archetype + project) |
 | C-c i | `iar-prompt-info` | Show prompt size info |
 | C-c v | `iar-view-prompt` | View full system prompt (read-only) |
 | C-c b | `iar-buffer-info` | Show conversation buffer size (chars + approx tokens) |
-| C-c m | `iar-summarize-session` | Summarize conversation to memory |
 | C-x C-c | `iar-quit` | Session-aware quit |
+
+Note: C-c m (memory summarizer) has been removed. The `iar-key-summarize` defcustom still exists in configs/keybindings.el but the command it bound to (`iar-summarize-session`) is no longer loaded.
 
 All keybindings are defcustoms in `configs/keybindings.el` and can be changed without editing module code.
 
-## Agent Profile Structure
+## Agent Prompt Assembly
 
-Each agent lives in `prompts/agents/<name>/` (bind-mounted to `/root/.emacs.d/agents.d/agents/`):
-
-```
-prompts/agents/<name>/
-  prompt.org      -- Agent personality (loaded by C-c a, #+INCLUDE expanded)
-```
-
-The `prompt.org` file includes shared context via:
-```
-#+INCLUDE: "../../base_context.org"
-```
-
-Personal files are NOT in the agent directory. They live in the personalization mount:
+Agents are no longer loaded from monolithic `prompt.org` files. The three-axis assembly model constructs prompts from independent primitives:
 
 ```
-tasks/<name>/     -- Task files (one .md per task, file exists = work to do)
-audit/<name>/     -- HISTORY.log, LOGS.md, SUMMARY.md, MEMORIES.md
+agents.d/archetypes/<name>.org    -- Behavioral mode (interactive, autonomous, etc.)
+agents.d/personalities/<name>.org -- Voice/character (mirror, darwin, etc.)
+personalization/projects/<name>.org -- Knowledge, tools, mounts, objective
 ```
 
-Memory files (LOGS.md, SUMMARY.md, MEMORIES.md) are injected into the agent prompt programmatically by `iar-agent-loader.el` from `audit/<name>/` (not via #+INCLUDE). The agent sees its memory as part of its system prompt without any #+INCLUDE lines for personal files. Task files are read on demand via the `read_task` tool from `tasks/<name>/`.
+The assembly engine (`iar-prompt-assembly.el`) reads all three, combines them with `base_context.org`, auto-loads project knowledge, injects mode-based memory, and filters tools. The result is a single system prompt + filtered tool list set buffer-locally by `iar--setup-assembled-buffer`.
+
+Memory files are injected programmatically by the assembly engine based on the archetype's `#+MODE:` metadata:
+- Interactive: LOGS.md (last N lines) from `audit/<project>/<personality>/`
+- Autonomous/Continuous: STATE.org (full) from `audit/<project>/<personality>/`
+- Delegated: No memory injection
+
+Task files are read on demand via the `read_task` tool from `tasks/<project>/`.
 
 ## Shared Context
 
-`prompts/base_context.org` contains shared context inherited by all agents (bind-mounted to `agents.d/base_context.org`). Individual agent prompts include it via:
-```
-#+INCLUDE: "../../base_context.org"
-```
+`prompts/base_context.org` contains shared context inherited by all agents (bind-mounted to `agents.d/base_context.org`). It is injected by the assembly engine directly -- not via `#+INCLUDE`. Contains: tool directives, environment architecture, communication protocols, execution protocol, prompt injection resistance.
 
 ## Prompt Templates
 
@@ -187,15 +186,22 @@ Memory files (LOGS.md, SUMMARY.md, MEMORIES.md) are injected into the agent prom
 - `delegate_continue.org` -- Re-prompt for delegates that narrate instead of acting
 - `agent_cycle.org` -- Shared cycle prompt for all autonomous agents
 - `agent_cycle_continue.org` -- Shared cycle continuation prompt
-- `continuous_agent.org` -- Generic protocol for continuous agents (read memories, read history, read state, do work, log, update state, LOOP_COMPLETE)
-- `gardener_cycle.org` -- Gardener-specific cycle wake-up message
-- `librarian_cycle.org` -- Librarian-specific cycle wake-up message
-- `matrix_turn.org` -- Matrix watcher turn prompt
-- `memory_summarizer.org` -- Memory summarization prompt
+- `continuous_agent.org` -- Generic protocol for continuous agents
 - `loop_soft_block.org` -- Loop guard soft block message
 - `loop_hard_stop.org` -- Loop guard hard stop message
 - `unknown_tool.org` -- Unknown tool error message
 - `mount_info.org` -- Extra mount info template
+- `memory_summarizer.org` -- Memory summarization prompt (legacy, summarizer module removed)
+- `matrix_turn.org` -- Matrix watcher turn prompt
+
+## Cycle Prompts
+
+`prompts/cycles/` contains cycle prompts for autonomous and continuous agents (bind-mounted to `agents.d/cycles/`):
+- `self_modification.org` -- Darwin's cycle: read state, read tasks, make one change, review, test, commit, log, update state
+- `monitoring.org` -- Gardener's cycle: pull latest, compare HEAD to last checked commit, run tests, diagnose failures, write tasks for darwin
+- `documentation_sync.org` -- Librarian's cycle: pick one source file, compare against docs, fix drift, commit, log
+
+Cycle files are loaded by `iar-agent-cycle.el` based on `iar-personality-cycle-map`.
 
 ## Coding Guidelines
 
@@ -216,9 +222,7 @@ Memory files (LOGS.md, SUMMARY.md, MEMORIES.md) are injected into the agent prom
 
 ## Test Suite
 
-25 test files, 504 tests total. Run with:
+Test files live in `test/` and follow the naming convention `test-<module>.el`. The test runner (`run-tests.el`) loads the gptel fork on load-path (via `EMACBOROS_GPTEL_FORK_PATH` env var) to ensure tests use the fork with our fixes instead of stale ELPA `.elc` files. Run with:
 ```bash
 emacs --batch -l /root/.emacs.d/test/run-tests.el
 ```
-
-Test files live in `test/` and follow the naming convention `test-<module>.el`. The test runner (`run-tests.el`) loads the gptel fork on load-path (via `EMACBOROS_GPTEL_FORK_PATH` env var) to ensure tests use the fork with our fixes instead of stale ELPA `.elc` files.

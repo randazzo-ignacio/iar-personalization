@@ -18,7 +18,7 @@ git clone https://github.com/randazzo-ignacio/i.ar.git
 git clone --recursive https://github.com/randazzo-ignacio/i.ar.git
 ```
 
-The personalization submodule at `personalization/` contains knowledge bases, per-agent tasks, and audit logs. Users should fork or create their own personalization repo with their own knowledge, tasks, and agent configurations.
+The personalization submodule at `personalization/` contains knowledge bases, project files, per-agent tasks, and audit logs. Users should fork or create their own personalization repo with their own knowledge, projects, tasks, and agent configurations.
 
 ### Build the Container
 
@@ -31,27 +31,27 @@ cd i.ar
 
 ```bash
 # Basic usage (connects to remote Ollama via WireGuard):
-./utils/iar.sh --personalization ~/repos/iar-personalization
+./utils/iar.sh --personalization ~/repos/iar-personalization --project iar
 
 # With self-modification enabled (for development/darwin):
-./utils/iar.sh --personalization ~/repos/iar-personalization --self-modification
+./utils/iar.sh --personalization ~/repos/iar-personalization --project iar --self-modification
 
 # With local Ollama and self-modification:
-./utils/iar.sh --personalization ~/repos/iar-personalization --local --self-modification
+./utils/iar.sh --personalization ~/repos/iar-personalization --project iar --local --self-modification
 
 # Mount additional directories into the container:
-./utils/iar.sh --personalization ~/repos/iar-personalization \
+./utils/iar.sh --personalization ~/repos/iar-personalization --project iar \
   --mount /home/user/projects/myapp \
   --mount-ro /etc/ansible
 
 # With a local gptel fork (for testing upstream fixes):
-./utils/iar.sh --personalization ~/repos/iar-personalization --gptel-fork ~/repos/gptel
+./utils/iar.sh --personalization ~/repos/iar-personalization --project iar --gptel-fork ~/repos/gptel
 
 # With memory limit (default 8g):
-./utils/iar.sh --personalization ~/repos/iar-personalization --memory 4g
+./utils/iar.sh --personalization ~/repos/iar-personalization --project iar --memory 4g
 
 # With a specific model and context window:
-./utils/iar.sh --personalization ~/repos/iar-personalization --model granite4.1:8b-q8_0 --ctx 131072
+./utils/iar.sh --personalization ~/repos/iar-personalization --project iar --model granite4.1:8b-q8_0 --ctx 131072
 ```
 
 ### Run (Loop Mode -- Autonomous Agents)
@@ -59,24 +59,23 @@ cd i.ar
 ```bash
 # Run a single darwin cycle (needs --self-modification for code edits):
 ./utils/iar.sh --loop --personalization ~/repos/iar-personalization \
-  --agent darwin --self-modification --gptel-fork ~/repos/gptel
+  --agent darwin --project darwin --self-modification
 
 # Run a long darwin loop (50 cycles with cooldown):
 ./utils/iar.sh --loop --personalization ~/repos/iar-personalization \
-  --agent darwin --self-modification --gptel-fork ~/repos/gptel --max-cycles 50
+  --agent darwin --project darwin --self-modification --max-cycles 50
 
 # Run gardener (no self-modification needed):
 ./utils/iar.sh --loop --personalization ~/repos/iar-personalization \
-  --agent gardener --gptel-fork ~/repos/gptel --max-cycles 10
+  --agent gardener --project gardener --max-cycles 1
+
+# Run librarian (documentation sync):
+./utils/iar.sh --loop --personalization ~/repos/iar-personalization \
+  --agent librarian --project librarian --max-cycles 1
 
 # With specific knowledge bases:
 ./utils/iar.sh --loop --personalization ~/repos/iar-personalization \
-  --agent playground --knowledge infra/ --knowledge iar/
-
-# With a specific model and context window (for local models):
-./utils/iar.sh --loop --personalization ~/repos/iar-personalization \
-  --agent playground --model nemotron-3-super:120b --ctx 131072 \
-  --ollama-host 10.66.0.5:11434 --max-cycles 999 --cooldown 300
+  --agent darwin --project darwin --knowledge infra/ --knowledge iar/
 ```
 
 ### Status Dashboard
@@ -91,7 +90,8 @@ cd i.ar
 
 | Flag | Required | Description |
 |------|----------|-------------|
-| `--personalization PATH` | Yes | Mounts docs/, knowledge/, tasks/, audit/ subdirectories into container |
+| `--personalization PATH` | Yes | Mounts personalization repo at /root/personalization (contains docs/, knowledge/, projects/, tasks/, audit/) |
+| `--project NAME` | Yes | Sets IAR_PROJECT env var. Determines which project file to load. Auto-creates project file if not found. |
 | `--loop` | No | Run in autonomous loop mode (requires `--agent`) |
 | `--self-modification` | No | Enables tier 2 file guard relaxation for .el file edits |
 | `--ollama-host HOST:PORT` | No | Override Ollama backend (default: from env or WireGuard IP) |
@@ -104,11 +104,11 @@ cd i.ar
 | `--ssh-key-dir PATH` | No | Directory containing SSH keys (default: ~/.ssh) |
 | `--ssh-key NAME` | No | SSH key name (default: emacboros_ed25519). Skipped if key doesn't exist. |
 | `--memory LIMIT` | No | Podman memory limit (default: 8g). Caps container memory. |
-| `--knowledge LABEL` | No | Knowledge directory label to load (default: iar/). Can be specified multiple times. |
+| `--knowledge LABEL` | No | Documentation directory label to load (default: from project #+KNOWLEDGE). Can be specified multiple times. |
 | `--cycle-prompt NAME` | No | Override cycle prompt file (e.g. matrix_turn). |
 | `--status` | No | Show status dashboard (dispatches to iar-status.sh) |
 | `--help, -h` | No | Show usage and exit |
-| `--agent NAME` | Yes (loop) | Agent profile name (required in --loop mode) |
+| `--agent NAME` | Yes (loop) | Personality name (e.g., darwin, gardener, librarian) |
 | `--max-cycles N` | No (loop) | Maximum number of cycles (default: 1) |
 | `--cooldown SECONDS` | No (loop) | Seconds to wait between cycles (default: 60) |
 | `--max-failures N` | No (loop) | Max consecutive failures before stopping (default: 5) |
@@ -116,6 +116,8 @@ cd i.ar
 
 Environment variables:
 - `EMACBOROS_OLLAMA_HOST` -- Default Ollama host:port
+- `IAR_PROJECT` -- Current project name (set by --project flag)
+- `EMACBOROS_SELF_MODIFICATION` -- Set to "1" by --self-modification flag
 - `AGENT_TELEGRAM_BOT_TOKEN` -- Telegram bot token (loop mode notifications)
 - `AGENT_TELEGRAM_CHAT_ID` -- Telegram chat ID (loop mode notifications)
 
@@ -125,77 +127,105 @@ Environment variables:
 
 | Key | Command | Description |
 |-----|---------|-------------|
-| C-c a | `iar--load-agent` | Load agent personality (mirror, darwin, auditor, etc.) |
-| C-c k | `iar-load-knowledge` | Load a documentation directory (iar/, user/, infra/, etc.) |
-| C-c p | `iar-load-personality` | Load a personality into the current agent |
+| C-c a | `iar-load-agent` | Select personality and assemble prompt (interactive archetype + default project) |
+| C-c k | `iar-load-knowledge` | Load a documentation directory (iar/, user/, infra/, etc.) on top of assembled prompt |
+| C-c p | `iar-load-personality-interactive` | Switch personality (re-assemble with current archetype + project) |
 | C-c i | `iar-prompt-info` | Show prompt size (chars + approximate tokens) |
-| C-c m | `iar-summarize-session` | Summarize conversation to LOGS.md/SUMMARY.md |
-| C-x C-c | `iar-quit` | Session-aware quit (summarize before kill) |
+| C-c v | `iar-view-prompt` | View full system prompt (read-only) |
+| C-c b | `iar-buffer-info` | Show conversation buffer size (chars + approx tokens) |
+| C-x C-c | `iar-quit` | Session-aware quit |
 
 All keybindings are defcustoms in `configs/keybindings.el` and can be changed without editing module code.
 
 ### Typical Workflow
 
-1. Start the container with `iar.sh --personalization ...`
+1. Start the container with `iar.sh --personalization ... --project iar`
 2. Emacs opens with gptel-mode active
-3. Load an agent: `C-c a mirror` (or darwin, auditor, ctfwizard, gardener)
-4. Load documentation: `C-c k iar/` (project docs), `C-c k user/` (your identity), `C-c k infra/` (infrastructure)
+3. Load a personality: `C-c a mirror` (or darwin, gardener, librarian, davinci, colin)
+4. The assembly engine assembles the prompt from: interactive archetype + selected personality + iar project (which auto-loads iar/, infra/, user/ knowledge)
 5. Check prompt size: `C-c i` (monitor context window usage)
-6. Converse with the agent. It uses tools (read_file, execute_code_local, delegate, etc.) as needed.
-7. When done: `C-c m` to summarize the session to memory.
+6. Optionally load additional knowledge: `C-c k linux/` (concept knowledge bases)
+7. Converse with the agent. It uses tools (read_file, execute_code_local, delegate, etc.) as needed.
+8. When done: append session notes to LOGS.md via `append_file`.
 
 ### Talking to Mirror
 
-The mirror agent is your thinking partner. Load `docs/iar/` into it and ask it about the codebase, design decisions, or to review a change you're planning. The mirror challenges your assumptions, pushes back on scope, and helps you think through problems.
+The mirror agent is your thinking partner. The iar project auto-loads `docs/iar/` knowledge, so mirror already has the project documentation in its system prompt. Ask it about the codebase, design decisions, or to review a change you're planning. The mirror challenges your assumptions, pushes back on scope, and helps you think through problems.
 
 ### Running Autonomous Agents
 
-Any orchestrator agent can run autonomously in cycles using `iar.sh --loop`:
+Any personality with an autonomous or continuous archetype can run autonomously in cycles using `iar.sh --loop`:
 
 ```bash
 # Run a single darwin cycle (needs --self-modification for code edits):
 ./utils/iar.sh --loop --personalization ~/repos/iar-personalization \
-  --agent darwin --self-modification
+  --agent darwin --project darwin --self-modification
 
 # Run a long darwin loop (50 cycles with cooldown):
 ./utils/iar.sh --loop --personalization ~/repos/iar-personalization \
-  --agent darwin --self-modification --max-cycles 50
+  --agent darwin --project darwin --self-modification --max-cycles 50
 
-# Run a different agent autonomously:
+# Run gardener (no self-modification needed):
 ./utils/iar.sh --loop --personalization ~/repos/iar-personalization \
-  --agent gardener --max-cycles 1
+  --agent gardener --project gardener --max-cycles 1
 
-# With specific knowledge bases:
+# Run librarian (documentation sync):
 ./utils/iar.sh --loop --personalization ~/repos/iar-personalization \
-  --knowledge infra/ --knowledge iar/
+  --agent librarian --project librarian --max-cycles 1
 ```
 
-Darwin reads its memories (injected in system prompt, truncated to 200 lines), reads tasks via read_task, picks one thing to improve, makes the change, delegates to reviewer for code review, runs tests, commits, logs, and sleeps. One mutation per cycle. Documentation (default: iar/) is loaded automatically into the system prompt.
+Darwin reads its STATE.org (injected in system prompt), reads tasks via read_task, picks one thing to improve, makes the change, delegates to reviewer for code review, runs tests, commits, logs, and sleeps. One mutation per cycle.
 
 The gardener runs as a continuous agent: pull latest code, run tests, diagnose failures, write tasks for darwin. It does not need self-modification mode (read-only to codebase).
+
+The librarian runs as a continuous agent: pick one source file, compare against docs/iar/, fix drift, commit. It does not need self-modification mode (read-write to docs, read-only to code).
 
 Telegram notifications require `AGENT_TELEGRAM_BOT_TOKEN` and `AGENT_TELEGRAM_CHAT_ID` environment variables.
 
 ## Setting Up Your Personalization Repo
 
-The personalization repo has three subdirectories:
+The personalization repo is mounted at `/root/personalization/` inside the container. It contains:
 
 ```
 my-personalization/
   docs/             -- Project documentation (injectable via C-c k)
-  knowledge/         -- Concept knowledge bases (queryable via read_knowledge tool)
-    user/            -- Your identity, bio, domains, stack
-    iar/             -- i.ar self-documentation (from submodule or fork)
-    infra/           -- Your infrastructure docs
-    linux/           -- Linux administration knowledge
-  tasks/<agent>/     -- Per-agent files: TODO.md, IDEAS.md, LOGS.md, SUMMARY.md
-  audit/<agent>/     -- Per-agent HISTORY.log files
-  audit/audit.log    -- Global audit log
+    iar/            -- i.ar self-documentation
+    infra/          -- Infrastructure documentation
+    user/           -- Your identity, bio, domains, stack
+  knowledge/        -- Concept knowledge bases (queryable via read_knowledge tool)
+    linux/          -- Linux administration knowledge
+  projects/         -- Project definition files (one .org per project)
+    iar.org         -- Default project (all tools, multi-domain knowledge)
+  tasks/<project>/  -- Per-project task files
+  audit/<project>/<personality>/  -- Per-project/personality audit logs
+    HISTORY.log     -- Operational log
+    LOGS.md         -- Session notes (interactive mode)
+    STATE.org       -- Checkpoint (autonomous/continuous mode)
+  audit/audit.log   -- Global audit log
 ```
 
-1. Create the three subdirectories
-2. Add knowledge bases you want agents to access
-3. Create task/audit subdirectories for each agent you use
-4. Point `--personalization` at your repo when running iar.sh
+### Project Files
+
+A project file (`projects/<name>.org`) defines what an agent works on:
+
+```
+#+KNOWLEDGE: iar/ infra/ user/
+#+TOOLS: list_directory read_file write_file append_file execute_code_local check_elisp read_task create_task write_subtask remove_task read_history send_telegram git_commit delegate reload_os reload_agent read_knowledge read_roadmap write_roadmap
+#+MOUNTS: /var/home/nacho/repos/iar-infrastructure:rw
+#+OBJECTIVE: General-purpose i.ar development, infrastructure management, and security research.
+```
+
+- `#+KNOWLEDGE:` -- Space-separated list of doc subdirectory labels to auto-load
+- `#+TOOLS:` -- Space-separated list of tool names to register (if absent, all tools)
+- `#+MOUNTS:` -- Space-separated `path:mode` pairs (mode is `rw` or `ro`, default `rw`)
+- `#+OBJECTIVE:` -- Free-text scope/goal injected into the prompt
+
+### Setup Steps
+
+1. Create the subdirectories: `docs/`, `knowledge/`, `projects/`, `tasks/`, `audit/`
+2. Add knowledge bases you want agents to access in `docs/` and `knowledge/`
+3. Create a project file in `projects/` (start by copying `iar.org` and customizing)
+4. Create task/audit subdirectories for each project/personality you use
+5. Point `--personalization` at your repo when running iar.sh
 
 You can use the iar-personalization repo as a starting point and customize it.

@@ -45,7 +45,7 @@ Integrate Burp Suite's MCP server (PortSwigger/mcp-server) into i.ar for pentest
 
 **What unblocks:** Pentesting SaaS. Burp-powered security assessments with agent orchestration. Now the primary path -- Ruby migration is dead, Elisp is the permanent home.
 
-**Status:** Not yet implemented. Ready when pentesting SaaS work begins.
+**Status:** Not yet implemented. Ready when pentesting SaaS work begins. On the roadmap as Step 10 (i-ar-expansion/mcp-integration).
 
 ## CTF Network Restrictions
 
@@ -58,13 +58,13 @@ Integrate Burp Suite's MCP server (PortSwigger/mcp-server) into i.ar for pentest
 
 Relevant when actively doing CTFs, not blocking development.
 
-## Per-Agent Tool Gating
+## Per-Agent Tool Gating (DONE)
 
-Restrict tool availability per agent role. Orchestrators become pure reasoners (delegate, read, log, manage tasks -- no write/execute). Workers get role-specific tools.
+~~Restrict tool availability per agent role.~~
 
-**Why it's a future idea:** Delegate result extraction already solved the context bloat problem. The models taking the path of least resistance (doing work instead of delegating) is a behavioral issue, not a blocking one.
+**Status:** Implemented via per-project `#+TOOLS` metadata. Each project file declares which tools its agents can use. The assembly engine filters the global tool list. See `tool_gating.md` for details.
 
-**Implementation:** Category-based grouping in parameters.el, agent_loader.el filters gptel-tools on load. ~20 lines of code when ready.
+The remaining idea is container-level tool gating (`--enable-code-exec` flag) that overrides project-level gating. This is documented in `tool_gating.md` as a planned flag.
 
 ## Split Delegate and Reload into Tool + Logic Modules
 
@@ -80,7 +80,7 @@ Two-way messaging bridge between agents and the user's phone via Telegram Bot AP
 
 **Integration points:** Continuous agent notifications, long-running delegate completion, token budget warnings, remote execution results.
 
-Most relevant once continuous agents are running reliably.
+Most relevant once continuous agents are running reliably. One-way send (notifications) is already implemented via the `send_telegram` tool.
 
 ## Token Budget Management for Ollama Cloud
 
@@ -88,32 +88,40 @@ Weekly counter for Ollama Cloud usage, persist across restarts. When budget exha
 
 Not relevant with local-only setup. Becomes relevant when using cloud models regularly.
 
+## One-Shot Execution Mode
+
+One-shot execution becomes a mode in the assembly system, not a standalone feature. When assembly system supports modes:
+- interactive: no initial prompt, human provides it
+- one-shot: initial prompt from iar.sh flag, no cycle semantics
+- continuous: cycle prompt from cycles/, loop wrapper
+
+One-shot mode: loader assembles prompt from archetype + personality + project + docs + knowledge + one-shot instructions. No CYCLE_COMPLETE, no task selection, no cooldown. Initial prompt comes from iar.sh --prompt flag.
+
+**Status:** On the roadmap as Step 7 (agent-architecture/phase-7-one-shot-as-mode). Not yet implemented.
+
+## Delegation Pipeline
+
+Orchestrator delegates to agent-assistant, which coordinates implementer and reviewer internally. agent-assistant interprets request, plans, delegates to implementer, sends result to reviewer, loops on corrections, returns final result to orchestrator. Orchestrator context stays small. Quality control built in. Correction loop limited (default 2 rounds).
+
+Three new archetypes already exist: agent-assistant, implementer, reviewer. Three new project files exist with restricted tool sets. The delegate tool needs updating to support pipeline mode (agent parameter becomes optional, defaults to agent-assistant).
+
+**Status:** On the roadmap as Step 8 (delegation-pipeline). Archetypes and projects are created. Delegate tool update and design finalization remain.
+
 ## Auditor: Create Test Target for Non-Destructive Demos
 
 - Set up a local intentionally-vulnerable app (e.g., DVWA or custom)
 - Ensure it has XSS, info disclosure, misconfig examples
 - Keep it isolated from production
 
-Relevant when doing live auditor demos or testing delegation chains.
-
-## Auditor: Test Delegation Chain
-
-- Verify auditor delegates to reader for recon
-- Verify auditor routes to coder for payload crafting
-- Verify auditor uses reviewer for safety checks before execution
-- Confirm delegates receive engagement rules in context
-- Confirm reviewer rejects destructive payloads
-- Confirm auditor asks human before any borderline technique
-
-Verification checklist for when auditor is next used. Can be recreated on demand.
+Relevant when doing live auditor demos or testing delegation chains. Note: auditor agent no longer exists in the current archetype set. Would need to be recreated as a personality + project.
 
 ## CTF Wizard: Session Hardening
 
-- Lock down self-modification for CTF sessions (disable `iar--guard-allow-self-modification`)
+- Lock down self-modification for CTF sessions (disable `iar-guard-allow-self-modification`)
 - Enable output sanitizer in ctfwizard session (set `iar--sanitize-exec-output` buffer-local)
 - Edit ctfwizard prompt.org to insert CTF rules and scope
 
-Note: variable names updated after Layer 3 rename. Original task referenced pre-rename names (`my-gptel--guard-allow-self-modification`, `my-gptel--sanitize-exec-output`).
+Note: ctfwizard agent no longer exists in the current archetype set. Would need to be recreated as a personality + project. The session hardening concepts (locking self-modification, enabling sanitizer) are still valid for any security-focused personality.
 
 ## Darwin: Investigate Non-Streaming Ollama Tool-Use Overwrite
 

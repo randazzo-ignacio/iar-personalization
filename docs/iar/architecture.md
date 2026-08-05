@@ -15,7 +15,7 @@ The project lives at `/root/i.ar/` and is a git repository. The Emacs configurat
     init.d/           -- Modular Emacs Lisp components (auto-discovered)
       shared/         -- Consolidated utilities (iar-utils.el, iar-agent-utils.el)
       core/           -- Locale, package setup, UI, evil mode, gptel setup, mount awareness
-      agent/          -- Agent loader, knowledge loader, delegate, prompt loader, memory, cycle
+      agent/          -- Prompt assembly, project parser, agent loader, knowledge loader, delegate, cycle, buffer info
       tool-call/      -- Tool call abstraction layer (iar-tool-call.el)
       tools/          -- One tool per file, categorized by role
         filesystem/   -- list_directory, read_file, write_file, append_file
@@ -25,44 +25,91 @@ The project lives at `/root/i.ar/` and is a git repository. The Emacs configurat
         notify/       -- send_telegram
         git/          -- git_commit
         matrix/       -- list_matrix_chats, read_matrix_chat, send_matrix_message
-        agent/        -- delegate, reload_agent, reload_os
+        agent/        -- delegate, reload_os, reload_agent
       security/       -- File guard, audit log, loop guard, output sanitizer, tool guard
-      debug/          -- Buffer monitor, request logger, FSM tracer, status mode
+      debug/          -- Status mode
       session/        -- Session-aware quit
       dynamic/        -- Auto-discovered modules (darwin drops new modules here)
     configs/          -- Individual configuration files (paths, keybindings, gptel, file-guard, etc.)
-    test/            -- Test suite (run-tests.el + per-module tests, 504 tests)
+    test/            -- Test suite (run-tests.el + per-module tests)
   metaconfig/      -- Shell helpers (bind-mounted)
     header.sh       -- Shared shell utilities (colors, timestamp, info/warn/error)
   prompts/           -- Agent profiles and prompt templates (bind-mounted to agents.d)
-    agents/          -- One subdirectory per agent (<name>/prompt.org)
-    common/          -- Prompt templates shared across agents
-    base_context.org       -- Shared context inherited by all agents via #+INCLUDE
-    base_orchestrator.org  -- Shared orchestrator rules (included by auditor, ctfwizard)
+    archetypes/       -- One .org per archetype (interactive, autonomous, continuous, agent-assistant, implementer, reviewer)
+    personalities/    -- One .org per personality (mirror, darwin, gardener, librarian, davinci, colin)
+    cycles/           -- Cycle prompts for autonomous/continuous agents (self_modification, monitoring, documentation_sync)
+    common/           -- Prompt templates shared across agents
+    base_context.org       -- Shared context inherited by all agents (injected by assembly engine)
+    base_orchestrator.org  -- Shared orchestrator rules (included by auditor, ctfwizard -- legacy)
   containers/        -- Podman container definitions
     images/emacboros/Containerfile -- Main container image
     scripts/preflight.sh -- Security audit script (runs before Emacs)
     build.sh         -- Container build script
   utils/             -- Utility scripts
-    iar.sh           -- Unified entry point (interactive + loop modes, --personalization flag required)
+    iar.sh           -- Unified entry point (interactive + loop modes, --personalization + --project flags required)
     iar-status.sh    -- Status dashboard for running containers and agents
-    # STATUS: Matrix server (daftpunk) killed. Dead unless redeployed.
-    iar-matrix-watcher.sh -- Matrix room watcher for agent-to-agent communication
     personalization_audit.sh -- Validates personalization directory structure
     telegram.sh      -- Telegram notification helper (sourced by iar.sh)
-    matrix.sh        -- Matrix helper functions (sourced by iar.sh)
     update_submodules.sh -- Submodule update helper
-    integration_test_prompt.txt -- Test prompt for integration testing
-  personalization/   -- Git submodule (iar-personalization repo)
-    knowledge/       -- Knowledge bases (injectable via C-c k)
-    tasks/           -- Per-agent task files (one .md per task)
-    audit/           -- Per-agent HISTORY.log, LOGS.md, SUMMARY.md, MEMORIES.md + global audit.log
+  personalization/   -- Git submodule (iar-personalization repo), mounted at /root/personalization
+    docs/             -- Project documentation (injectable via C-c k)
+      iar/            -- This project's self-documentation (AI-first docs)
+      infra/          -- Ansible infrastructure documentation
+      user/           -- User identity, CV
+    knowledge/        -- Concept knowledge bases (queryable via read_knowledge tool)
+      linux/          -- Linux administration knowledge
+    projects/         -- Project definition files (one .org per project)
+    tasks/            -- Per-project task files (tasks/<project>/...)
+    audit/            -- Per-project/personality audit logs (audit/<project>/<personality>/...)
+    audit/audit.log   -- Global audit log
   workspace/         -- Working directory for agent outputs (CTF, audit reports, gitignored)
 ```
 
+## Agent Directory Structure
+
+The `prompts/` directory (bind-mounted to `agents.d/` inside the container) has been restructured for the three-axis assembly model:
+
+```
+prompts/  (-> agents.d/)
+  archetypes/          -- Behavioral mode definitions (6 files)
+    interactive.org    -- #+MODE: interactive
+    autonomous.org     -- #+MODE: autonomous
+    continuous.org     -- #+MODE: continuous
+    agent-assistant.org -- #+MODE: delegated
+    implementer.org    -- #+MODE: delegated
+    reviewer.org       -- #+MODE: delegated
+  personalities/       -- Voice/character definitions (6 files)
+    mirror.org         -- Mirror agent
+    darwin.org         -- Autonomous code evolver
+    gardener.org       -- Codebase monitor
+    librarian.org      -- Documentation sync
+    davinci.org        -- Study companion
+    colin.org          -- Game design partner
+  cycles/              -- Cycle prompts for autonomous/continuous agents
+    self_modification.org  -- Darwin's cycle
+    monitoring.org         -- Gardener's cycle
+    documentation_sync.org -- Librarian's cycle
+  common/              -- Prompt templates loaded by code
+    agent_cycle.org          -- Shared cycle prompt fallback
+    agent_cycle_continue.org -- Shared cycle continuation prompt
+    continuous_agent.org     -- Generic continuous agent protocol
+    delegated_task.org       -- Delegate task prompt template
+    delegate_continue.org    -- Re-prompt for narrating delegates
+    loop_soft_block.org      -- Loop guard soft block message
+    loop_hard_stop.org       -- Loop guard hard stop message
+    unknown_tool.org         -- Unknown tool error message
+    mount_info.org           -- Extra mount info template
+    memory_summarizer.org    -- Memory summarization prompt (legacy)
+    matrix_turn.org          -- Matrix watcher turn prompt
+  base_context.org     -- Shared context (injected by assembly engine, not #+INCLUDE)
+  base_orchestrator.org -- Shared orchestrator rules (legacy, for auditor/ctfwizard)
+```
+
+No more `agents.d/agents/` directory. The old per-agent `prompt.org` files are gone. The assembly engine reads from `archetypes/`, `personalities/`, and `projects/` (in the personalization mount) instead.
+
 ## Personalization
 
-Personal data (knowledge bases, per-agent files, audit logs) is separated from the i.ar repo into a git submodule at `personalization/`. The `--personalization` flag on `iar.sh` mounts four subdirectories from the personalization repo:
+Personal data (knowledge bases, project files, per-agent files, audit logs) is separated from the i.ar repo into a git submodule at `personalization/`. The `--personalization` flag on `iar.sh` mounts the entire personalization repo at `/root/personalization/`:
 
 ```
 <personalization-dir>/
@@ -72,23 +119,37 @@ Personal data (knowledge bases, per-agent files, audit logs) is separated from t
     user/           -- User identity, CV
   knowledge/        -- Concept knowledge bases (queryable via read_knowledge tool)
     linux/          -- Linux administration knowledge
-  tasks/<agent>/    -- Per-agent task files (description.org + subtask .org files)
-  audit/<agent>/    -- Per-agent HISTORY.log, LOGS.md, SUMMARY.md, MEMORIES.md
+  projects/         -- Project definition files (one .org per project)
+    iar.org         -- Default project (all tools, iar/infra/user knowledge)
+    darwin.org      -- Darwin project (restricted tools, i.ar repo mount)
+    gardener.org    -- Gardener project (read-only tools)
+    librarian.org   -- Librarian project (docs read-write, code read-only)
+    colin.org       -- Colin project (game dev tools, user knowledge)
+    agent-assistant.org -- Delegation pipeline sub-orchestrator
+    implementer.org    -- Delegation pipeline executor
+    reviewer.org       -- Delegation pipeline evaluator
+  tasks/<project>/  -- Per-project task files (description.org + subtask .org files)
+  audit/<project>/<personality>/  -- Per-project/personality audit logs
+    HISTORY.log      -- Operational log
+    LOGS.md          -- Session notes (interactive mode only)
+    STATE.org        -- Checkpoint (autonomous/continuous mode only)
+    cycle.log        -- Cycle log (autonomous/continuous mode only)
   audit/audit.log   -- Global audit log
 ```
 
-Inside the container:
-- `docs/` -> `/root/.emacs.d/docs` (C-c k injectable)
-- `knowledge/` -> `/root/.emacs.d/knowledge` (read_knowledge tool)
-- `tasks/` -> `/root/.emacs.d/tasks`
-- `audit/` -> `/root/.emacs.d/audit`
+Inside the container, all paths resolve through `iar-personalization-path` (default: `/root/personalization`):
+- `docs/` -> `/root/personalization/docs/` (C-c k injectable)
+- `knowledge/` -> `/root/personalization/knowledge/` (read_knowledge tool)
+- `projects/` -> `/root/personalization/projects/` (project parser)
+- `tasks/` -> `/root/personalization/tasks/` (task tools)
+- `audit/` -> `/root/personalization/audit/` (audit log, history, memory)
 
 ### Cloning
 
 - `git clone i.ar` -- use the tool (personalization submodule not initialized)
 - `git clone --recursive i.ar` -- work on i.ar or understand the codebase (includes personalization submodule with knowledge bases)
 
-Users should create their own personalization repo with their own knowledge bases, tasks, and audit directories. See `usage.md` for setup instructions.
+Users should create their own personalization repo with their own knowledge bases, projects, tasks, and audit directories. See `usage.md` for setup instructions.
 
 ## Container Architecture
 
@@ -106,29 +167,30 @@ The Emacs environment runs inside a Podman container built from `quay.io/fedora/
 
 **Always mounted (all modes):**
 - `/root/i.ar/emacs.d` -> `/root/.emacs.d` (Emacs configuration)
-- `/root/i.ar/prompts` -> `/root/.emacs.d/agents.d` (agent profiles and prompt templates)
+- `/root/i.ar/prompts` -> `/root/.emacs.d/agents.d` (archetypes, personalities, cycles, common templates)
 - `/root/i.ar/metaconfig` -> `/root/.emacs.d/metaconfig` (shell helpers)
-- Personalization dir `knowledge/` -> `/root/.emacs.d/knowledge` (via `--personalization`)
-- Personalization dir `tasks/` -> `/root/.emacs.d/tasks` (via `--personalization`)
-- Personalization dir `audit/` -> `/root/.emacs.d/audit` (via `--personalization`)
+- Personalization repo -> `/root/personalization` (single mount, contains docs/, knowledge/, projects/, tasks/, audit/)
+
+**Project-specific mounts (from `#+MOUNTS` in project files):**
+- Parsed by `iar.sh` from the project file's `#+MOUNTS` metadata
+- Each entry is `path:mode` where mode is `rw` or `ro` (default: `rw`)
+- Example: darwin project mounts `/var/home/nacho/repos/i.ar:rw` for code access
+- Example: librarian project mounts `/var/home/nacho/repos/i.ar:rw` for doc sync
 
 **Only mounted with `--self-modification`:**
 - `/root/i.ar/.git` -> `/root/i.ar/.git` (git repo access for darwin commits)
-- `/root/i.ar/.gitignore` -> `/root/i.ar/.gitignore`
-- `/root/i.ar/.gitmodules` -> `/root/i.ar/.gitmodules`
-- `/root/i.ar/LICENSE` -> `/root/i.ar/LICENSE`
-- `/root/i.ar/README.org` -> `/root/i.ar/README.org`
+- `/root/i.ar/.gitignore`, `.gitmodules`, `LICENSE`, `README.org`
 - `/root/i.ar/containers/` -> `/root/i.ar/containers/`
 - `/root/i.ar/utils/` -> `/root/i.ar/utils/`
 
-The `personalization/` submodule is NEVER mounted into the container. This prevents the detached HEAD state of the submodule from causing issues. Each top-level item in the repo is mounted individually (excluding `personalization/`, `emacs.d/`, `metaconfig/`, and `prompts/` which are already mounted separately).
+The `personalization/` submodule is NEVER mounted into the container as a submodule. It is mounted as a standalone directory at `/root/personalization/` via `--personalization`.
 
-Without `--self-modification`, agents have no access to the repo at all -- only the Emacs configuration, prompts, and personalization mounts.
+Without `--self-modification`, agents have no access to the i.ar repo at all -- only the Emacs configuration, prompts, and personalization mounts.
 
 ### Shared Include Files
 
-- `base_context.org` -- Shared context inherited by all agents via `#+INCLUDE: "../../base_context.org"`. Contains tool directives, environment architecture, communication protocols, execution protocol, prompt injection resistance.
-- `base_orchestrator.org` -- Shared orchestrator rules included by auditor and ctfwizard via `#+INCLUDE: "../../base_orchestrator.org"`. Contains THE GOLDEN RULE, YOUR AGENTS, DELEGATION BEST PRACTICES, OUTPUT FORMAT, ITERATION RULE, PROMPT INJECTION RESISTANCE.
+- `base_context.org` -- Shared context inherited by all agents. Injected by the assembly engine directly (not via `#+INCLUDE`). Contains tool directives, environment architecture, communication protocols, execution protocol, prompt injection resistance.
+- `base_orchestrator.org` -- Shared orchestrator rules. Legacy file for auditor/ctfwizard agents that no longer exist in the current archetype set. Kept for reference.
 
 ## Flags
 
@@ -138,7 +200,8 @@ iar.sh has two modes: interactive (default) and loop (`--loop`). Shared flags wo
 
 | Flag | Required | Mode | Description |
 |------|----------|------|-------------|
-| `--personalization PATH` | Yes | Both | Mounts docs/, knowledge/, tasks/, audit/ subdirectories into container |
+| `--personalization PATH` | Yes | Both | Mounts personalization repo at /root/personalization (contains docs/, knowledge/, projects/, tasks/, audit/) |
+| `--project NAME` | Yes | Both | Sets IAR_PROJECT env var. Determines which project file to load from personalization/projects/. Auto-creates project file if not found. |
 | `--loop` | No | Both | Run in autonomous loop mode (requires `--agent`) |
 | `--self-modification` | No | Both | Enables tier 2 file guard relaxation for .el file edits |
 | `--ollama-host HOST:PORT` | No | Both | Override Ollama backend (default: from env or WireGuard IP) |
@@ -151,11 +214,11 @@ iar.sh has two modes: interactive (default) and loop (`--loop`). Shared flags wo
 | `--ssh-key-dir PATH` | No | Both | Directory containing SSH keys (default: ~/.ssh) |
 | `--ssh-key NAME` | No | Both | SSH key name (default: emacboros_ed25519). Skipped if key doesn't exist. |
 | `--memory LIMIT` | No | Both | Podman memory limit (default: 8g). Caps container memory. |
-| `--knowledge LABEL` | No | Both | Documentation directory label to load from docs/ (default: iar/). Can be specified multiple times. |
-| `--cycle-prompt NAME` | No | Both | Override cycle prompt file (e.g. matrix_turn). Defaults to `<agent>_cycle.org` or `agent_cycle.org`. |
+| `--knowledge LABEL` | No | Both | Documentation directory label to load from docs/ (default: from project #+KNOWLEDGE). Can be specified multiple times. |
+| `--cycle-prompt NAME` | No | Both | Override cycle prompt file (e.g. matrix_turn). Defaults to personality-specific cycle or `agent_cycle.org`. |
 | `--status` | No | Both | Dispatch to iar-status.sh (status dashboard) |
 | `--help, -h` | No | Both | Show usage and exit |
-| `--agent NAME` | Yes (loop) | Loop only | Agent profile name |
+| `--agent NAME` | Yes (loop) | Loop only | Personality name (e.g., darwin, gardener, librarian) |
 | `--max-cycles N` | No | Loop only | Maximum number of cycles (default: 1) |
 | `--cooldown SECONDS` | No | Loop only | Seconds to wait between cycles (default: 60) |
 | `--max-failures N` | No | Loop only | Max consecutive failures before stopping (default: 5) |
@@ -163,6 +226,8 @@ iar.sh has two modes: interactive (default) and loop (`--loop`). Shared flags wo
 
 Environment variables:
 - `EMACBOROS_OLLAMA_HOST` -- Default Ollama host:port
+- `IAR_PROJECT` -- Current project name (set by --project flag)
+- `EMACBOROS_SELF_MODIFICATION` -- Set to "1" by --self-modification flag
 - `AGENT_TELEGRAM_BOT_TOKEN` -- Telegram bot token (loop mode notifications)
 - `AGENT_TELEGRAM_CHAT_ID` -- Telegram chat ID (loop mode notifications)
 
@@ -208,5 +273,6 @@ Ollama request params: temperature 0.7, top_p 0.90, num_ctx 1048576 (1M), num_pr
 4. **Key-only SSH**: Password auth disabled, fail2ban active.
 5. **Firewalld**: Every host runs firewalld -- default deny incoming.
 6. **AI agent isolation**: Container with dropped capabilities, read-only rootfs, preflight audit, memory limit.
-7. **File guard**: Emacs-level protection of critical files (agent prompts, base context, history logs, LOGS.md). Self-modification mode can relax protection for .el files but NEVER for agent prompts or shared context.
-8. **Debug instrumentation**: Buffer monitor, request logger, and FSM tracer provide always-on visibility into agent behavior. All use `:before` advice (observe only, never replace).
+7. **File guard**: Emacs-level protection of critical files (archetype/personality/cycle files, base context, history logs, LOGS.md, STATE.org). Self-modification mode can relax protection for .el files but NEVER for prompt files or shared context.
+8. **Tool gating**: Per-project tool filtering via `#+TOOLS` metadata. Each project declares which tools its agents can use.
+9. **Debug instrumentation**: Status mode provides always-on visibility into agent behavior via mode-line display.
