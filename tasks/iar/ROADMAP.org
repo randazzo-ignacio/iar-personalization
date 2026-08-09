@@ -1,0 +1,132 @@
+# i.ar Roadmap
+
+No dates. Dependencies and ordering only. Completion is implicit: if a task directory exists, it's not done. If it's gone (removed via remove_task), it's done.
+
+## Alpha Goal
+
+i.ar alpha = the platform works for both the long-term-plan track (concept library, life-org) AND the pentesting track. Feature freeze is in effect. No new features enter the roadmap without explicit rejection of alternatives. New ideas go to future_ideas.md.
+
+**After the current roadmap is complete:** One final assessment pass to verify all alpha capabilities are implemented. Then the next roadmap is the long-term plan integration (concept library authoring, degree summarization, life-org workflows).
+
+## Alpha Capabilities
+
+| # | Capability | Use Cases | Steps |
+|---|-----------|-----------|-------|
+| 1 | Isolated Code Execution | Pentesting, simulation, on-site audit, general compute | 9 |
+| 2 | Remote Infrastructure Inspection | Debug own servers, diagnose client infra | 9 |
+| 3 | External Tool Integration | Burp Suite, future MCP tools | 10 |
+| 4 | Rate-Limited Execution | Stealth scanning, API throttling | 11 |
+| 5 | Pentesting Workflow | Target scoping, scanning, findings, on-site audit | 12 |
+| 6 | Knowledge Base Authoring & Verification | Agent assists writing concepts, runs simulations, verifies tests | 13-14 |
+| 7 | Autonomous Code Quality | Gardener finds violations, darwin fixes | 15 |
+| 8 | Life Organization Integration | hledger queries, inventory checks, routine surfacing via natural language | 16 |
+| 9 | Code Quality & Optimization | Refactor, test coverage, prompt size | 17-19 |
+
+## Phase 1: Features (exploratory, fast, don't fight every detail)
+
+Features are added without a solid architectural place in mind. This is fine -- exploratory nature allows rapid iteration. Coherence comes in Phase 2.
+
+### Track A: Infrastructure & Security
+
+Step 9: i-ar-expansion/multi-container-execution [DONE]
+  Multi-container execution framework. Purpose-specific containers (pentest, concepts, life-org, debug) accessed via execute_code_remote(target, command). Project files declare available containers via #+CONTAINERS. iar.sh starts and tears down containers per session. Container images: iar-pentest (built), iar-concepts, iar-lifeorg, iar-debug (future steps). Ansible role for remote debug containers on sophon + rammstein. On-site audit deployment via Ansible. Replaces execute-code-local-security and agent-ssh-read-only-access. Prerequisite for all other feature steps.
+
+Step 10: i-ar-expansion/mcp-integration [DONE]
+  MCP package (MELPA) wired into i.ar tool system. MCP tools appear alongside native tools in gptel-tools. Enables Burp Suite and other MCP-compatible tools. Project files declare MCP servers via #+MCP: burp. configs/mcp.el defines known servers. init.d/core/iar-mcp-setup.el manages server lifecycle and tool registration. Container networking: Burp on host, MCP SSE endpoint reachable via --network=host (already enabled). Depends on Step 9 (pentest container on same podman network as Burp).
+
+Step 11: i-ar-expansion/rate-limiter
+  Rate limiting for execute_code_remote. Crude version first: sleep before exec calls. Needed before autonomous pentesting against real targets.
+
+Step 12: i-ar-expansion/pentesting-suite
+  Pentesting agent + toolset. Depends on Steps 9+10+11 (multi-container + MCP + rate limiter). Burp via MCP, nmap/curl/python via execute_code_remote target=pentest, audit methodology in agent knowledge. Includes on-site audit mode: pentest container deployed inside client network via Ansible, agent SSHes to it.
+
+### Track B: Knowledge & Concepts
+
+Step 13: i-ar-expansion/concepts-container-image
+  Build the iar-concepts container image with simulation tools (Maxima, ngspice, iverilog, gnuplot, Ruby, gcc). Simplified from original Step 13 -- the multi-container framework already exists from Step 9, this is just the Containerfile. May already be done as part of Step 9's container-images subtask.
+
+Step 14: i-ar-expansion/first-concept-and-authoring-workflow
+  Agent-assisted concept authoring end-to-end: write notes.tex, run Maxima via execute_code_remote target=concepts, write test.rb, verify cross-implementation, push to wiki. Establishes the workflow for how an agent helps author and verify concepts. First concept: PID controller (validates full sparse matrix: Ruby, C, Verilog, GLSL, ngspice). Concepts live in personalization repo under knowledge/ or a concepts/ subdirectory.
+
+### Track C: Life Organization (NEW)
+
+Step 16: i-ar-expansion/life-org-integration
+  Life organization container + agent integration. Build iar-lifeorg container image (hledger, Ruby). Mount personalization repo life-org paths (hledger journal, inventory, routine files). Write knowledge base entries describing file formats and locations. Verify agent can query finances (hledger), check inventory, surface routine items via natural language through execute_code_remote target=life-org. No new domain-specific Elisp tools -- everything through execute_code_remote. Human can also handle workflow independently (i.ar sits on top, assists via natural language).
+
+### Track D: Autonomous Quality (parallel, not blocking)
+
+Step 15: i-ar-expansion/gardener-guidelines-checker
+  Gardener checks codebase against GUIDELINES.org on each tick. Violations become tasks for darwin. This IS the gardener+darwin self-modification pipeline: gardener finds issues, darwin fixes them. Enables actual useful autonomous code evolution.
+
+## Phase 2: Refactor (consolidation + coherence)
+
+After all Phase 1 features land. Clean up exploratory debt before piling more on.
+
+Step 17: refactor/consolidation-pass
+  - Audit all modules for coherence in implementation patterns
+  - Remove overly complex features that didn't earn their complexity
+  - Reduce repetition across modules
+  - Integrate wiki pipeline into i.ar (Rakefile reads from knowledge/ + docs/ + tasks/, post-receive hook)
+  - Enforce GUIDELINES.org compliance across codebase
+  - Consolidate exploratory code into clean architecture
+
+  Finish line: codebase passes guidelines checker with zero violations, no dead code, no duplicated patterns that should be shared utilities.
+
+## Phase 3: Quality (test the final shape)
+
+Test the refactored code, not the exploratory intermediate.
+
+Step 18: agent-architecture/coverage-to-100
+  Get form-level test coverage to 100% on refactored codebase. Current: 85.6% (5043/5888 forms). Coverage runner: test/run-coverage.el. All new features must maintain 100% coverage going forward.
+
+Step 19: i-ar-expansion/reduce-prompt-tokens
+  Audit base_context.org, compress LOGS.md injection, tighten tool descriptions. Optimization pass on the final shape.
+
+## Post-Alpha Assessment
+
+After Step 19: Final review to verify all 9 alpha capabilities are fully implemented. If gaps found, add targeted steps. If complete, declare alpha and begin next roadmap.
+
+## Next Roadmap (After Alpha)
+
+The next roadmap is the long-term plan integration:
+- Concept library: degree summarization (40 subjects, starting with pure math)
+- Long-term plan Phase 5: Ruby-Godot bridge, co-simulation framework
+- Pentesting automation: bounty hunting with autonomous agents
+- Advanced life-org: alerting, continuous monitoring, maintenance scheduling
+
+## Completed (Previous Sessions)
+
+Step 1: knowledge-system/phase-1-reorganization-and-tooling [DONE]
+Step 2: agent-architecture/define-archetypes [DONE]
+Step 3: agent-architecture/prompt-assembly [DONE]
+Step 4: agent-architecture/memory-system [DONE]
+Step 5: agent-architecture/per-project-migration [DONE]
+Step 6: agent-architecture/one-shot-execution-model [DONE]
+Step 7: delegation-pipeline [DONE]
+Step 8: (absorbed into Step 5) [DONE]
+Step 9: i-ar-expansion/multi-container-execution [DONE]
+Step 10: i-ar-expansion/mcp-integration [DONE]
+
+## Removed from Roadmap
+
+- knowledge-system/phase-2-infrastructure-flag -- Absorbed by #+MOUNTS in project files. Dead idea.
+- knowledge-system/phase-4-wiki-pipeline -- Absorbed into Step 17 (refactor). Wiki integration is part of the consolidation pass.
+- knowledge-system/phase-5-simulation-tools -- Renumbered to Step 13 (concepts container image).
+- i-ar-expansion/graphical-emacs-in-container -- QoL improvement, not a feature. Not on the critical path.
+- i-ar-expansion/execute-code-local-security -- Absorbed into Step 9 (multi-container-execution). Physical filesystem separation eliminates the file guard bypass problem.
+- i-ar-expansion/agent-ssh-read-only-access -- Absorbed into Step 9 (multi-container-execution). Remote debug containers replace the SSH user + sudo allowlist approach.
+
+## Cycle Guidelines for Continuous Agents
+
+When working autonomously:
+1. read_roadmap to get this file
+2. Walk Phase 1 in step order. For each step, read_task on the path to check if it still exists
+3. If the task directory exists, it's not done -- work on it
+4. If the task directory is gone, it's done -- move to the next step
+5. One task per cycle. Small, deliberate changes.
+6. When a task is complete: remove_task, log to HISTORY.log, end with LOOP_COMPLETE
+
+## Next Action
+
+Step 11: i-ar-expansion/rate-limiter
+Rate limiting for execute_code_remote. Crude version first: sleep before exec calls. Needed before autonomous pentesting against real targets.
