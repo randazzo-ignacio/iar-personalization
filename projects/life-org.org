@@ -1,0 +1,4 @@
+#+KNOWLEDGE: life-org/ iar/
+#+TOOLS: list_directory read_file write_file append_file execute_code_local execute_code_remote check_elisp read_task create_task write_subtask remove_task read_history send_telegram git_commit delegate reload_os reload_agent read_knowledge read_roadmap write_roadmap
+#+CONTAINERS: life-org
+#+OBJECTIVE: Life organization and personal finance management. hledger queries, inventory checks, routine surfacing via natural language through execute_code_remote target=life-org.

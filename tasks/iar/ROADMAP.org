@@ -29,34 +29,24 @@ Features are added without a solid architectural place in mind. This is fine -- 
 ### Track A: Infrastructure & Security
 
 Step 9: i-ar-expansion/multi-container-execution [DONE]
-  Multi-container execution framework. Purpose-specific containers (pentest, concepts, life-org, debug) accessed via execute_code_remote(target, command). Project files declare available containers via #+CONTAINERS. iar.sh starts and tears down containers per session. Container images: iar-pentest (built), iar-concepts, iar-lifeorg, iar-debug (future steps). Ansible role for remote debug containers on sophon + rammstein. On-site audit deployment via Ansible. Replaces execute-code-local-security and agent-ssh-read-only-access. Prerequisite for all other feature steps.
-
 Step 10: i-ar-expansion/mcp-integration [DONE]
-  MCP package (MELPA) wired into i.ar tool system. MCP tools appear alongside native tools in gptel-tools. Enables Burp Suite and other MCP-compatible tools. Project files declare MCP servers via #+MCP: burp. configs/mcp.el defines known servers. init.d/core/iar-mcp-setup.el manages server lifecycle and tool registration. Container networking: Burp on host, MCP SSE endpoint reachable via --network=host (already enabled). Depends on Step 9 (pentest container on same podman network as Burp).
-
 Step 11: i-ar-expansion/rate-limiter [DONE]
-  Rate limiting for execute_code_local and execute_code_remote. Crude version: --rate-limit SECONDS flag on iar.sh, IAR_RATE_LIMIT env var, sleep before each exec call via iar--rate-limit-maybe-sleep. Global rate limit (every call sleeps the same amount). Per-target rate limiting can be added later. Needed before autonomous pentesting against real targets.
-
 Step 12: i-ar-expansion/pentesting-suite [DONE]
-  Pentesting agent + toolset. Pentest personality with PTES methodology, OWASP Top 10 knowledge base, structured report format. Project file with #+CONTAINERS: pentest, #+MCP: burp. Burp via MCP, nmap/curl/python via execute_code_remote target=pentest. On-site audit mode: pentest container deployable via Ansible. Integration testing against practice targets deferred to post-alpha.
 
 ### Track B: Knowledge & Concepts
 
 Step 13: i-ar-expansion/concepts-container-image [DONE]
-  Built the iar-concepts container image with simulation tools (Maxima, ngspice, iverilog, gnuplot, Ruby, gcc, make). Containerfile at containers/images/concepts/Containerfile. Network=none, unprivileged user. Container descriptions already registered in iar-prompt-assembly.el. iar.sh already handles concepts target.
-
 Step 14: i-ar-expansion/first-concept-and-authoring-workflow [DONE]
-  Agent-assisted concept authoring end-to-end. First concept: PID controller. Created knowledge/concepts/ directory with: description.org, pid-controller.org (theory + parameters), pid-controller.rb (Ruby impl), pid-controller.c (C impl), pid-controller.v (Verilog Q8.8 fixed-point), pid-controller.glsl (GPU shader), pid-controller.spice (ngspice deck), test.rb (cross-implementation verification harness). Parameters: Kp=2.0, Ki=5.0, Kd=0.1, tau=1.0, dt=0.01, setpoint=1.0, sim=10s. Verified math with Python (Ruby not available in Emacs container, runs in concepts container). Workflow established: write .org theory, write implementations, write test.rb, run simulations via execute_code_remote target=concepts.
 
 ### Track C: Life Organization
 
-Step 16: i-ar-expansion/life-org-integration
-  Life organization container + agent integration. Build iar-lifeorg container image (hledger, Ruby). Mount personalization repo life-org paths (hledger journal, inventory, routine files). Write knowledge base entries describing file formats and locations. Verify agent can query finances (hledger), check inventory, surface routine items via natural language through execute_code_remote target=life-org. No new domain-specific Elisp tools -- everything through execute_code_remote. Human can also handle workflow independently (i.ar sits on top, assists via natural language).
+Step 16: i-ar-expansion/life-org-integration [DONE]
+  Life-org container image (hledger, Ruby, jq). Knowledge base (overview.md, hledger-reference.md). Project file with #+CONTAINERS: life-org. Container descriptions already registered. iar.sh already handles life-org target (network=none).
 
-### Track D: Autonomous Quality (parallel, not blocking)
+### Track D: Autonomous Quality
 
-Step 15: i-ar-expansion/gardener-guidelines-checker
-  Gardener checks codebase against GUIDELINES.org on each tick. Violations become tasks for darwin. This IS the gardener+darwin self-modification pipeline: gardener finds issues, darwin fixes them. Enables actual useful autonomous code evolution.
+Step 15: i-ar-expansion/gardener-guidelines-checker [DONE]
+  Guidelines checker module (init.d/agent/iar-guidelines-checker.el). Checks 9 rules across 46 source files. Gardener monitoring cycle updated with Phase 5 (guidelines check). Violations become tasks for darwin.
 
 ## Phase 2: Refactor (consolidation + coherence)
 
@@ -110,6 +100,8 @@ Step 11: i-ar-expansion/rate-limiter [DONE]
 Step 12: i-ar-expansion/pentesting-suite [DONE]
 Step 13: i-ar-expansion/concepts-container-image [DONE]
 Step 14: i-ar-expansion/first-concept-and-authoring-workflow [DONE]
+Step 15: i-ar-expansion/gardener-guidelines-checker [DONE]
+Step 16: i-ar-expansion/life-org-integration [DONE]
 
 ## Removed from Roadmap
 
@@ -132,5 +124,7 @@ When working autonomously:
 
 ## Next Action
 
-Step 15: i-ar-expansion/gardener-guidelines-checker
-Gardener checks codebase against GUIDELINES.org on each tick. Violations become tasks for darwin. Needs GUIDELINES.org to exist first (it does). Turns static conventions into active constraint on codebase.
+Phase 1 is complete (Steps 9-16 all DONE).
+
+Step 17: refactor/consolidation-pass
+Audit all modules for coherence, remove dead code, enforce GUIDELINES.org compliance, integrate wiki pipeline. Finish line: zero guidelines violations, no dead code, no duplicated patterns.
