@@ -1,0 +1,4 @@
+#+KNOWLEDGE: test/
+#+TOOLS: list_directory read_file write_file append_file execute_code_local execute_code_remote check_elisp read_task create_task write_subtask remove_task read_history send_telegram git_commit delegate reload_os reload_agent read_knowledge read_roadmap write_roadmap
+#+CONTAINERS: pentest life-org concepts
+#+OBJECTIVE: End-to-end feature testing. Exercise all i.ar tools and multi-container features. Report PASS/FAIL/SKIP for each test in the plan.
