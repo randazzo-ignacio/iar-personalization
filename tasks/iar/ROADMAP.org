@@ -34,8 +34,8 @@ Step 9: i-ar-expansion/multi-container-execution [DONE]
 Step 10: i-ar-expansion/mcp-integration [DONE]
   MCP package (MELPA) wired into i.ar tool system. MCP tools appear alongside native tools in gptel-tools. Enables Burp Suite and other MCP-compatible tools. Project files declare MCP servers via #+MCP: burp. configs/mcp.el defines known servers. init.d/core/iar-mcp-setup.el manages server lifecycle and tool registration. Container networking: Burp on host, MCP SSE endpoint reachable via --network=host (already enabled). Depends on Step 9 (pentest container on same podman network as Burp).
 
-Step 11: i-ar-expansion/rate-limiter
-  Rate limiting for execute_code_remote. Crude version first: sleep before exec calls. Needed before autonomous pentesting against real targets.
+Step 11: i-ar-expansion/rate-limiter [DONE]
+  Rate limiting for execute_code_local and execute_code_remote. Crude version: --rate-limit SECONDS flag on iar.sh, IAR_RATE_LIMIT env var, sleep before each exec call via iar--rate-limit-maybe-sleep. Global rate limit (every call sleeps the same amount). Per-target rate limiting can be added later. Needed before autonomous pentesting against real targets.
 
 Step 12: i-ar-expansion/pentesting-suite
   Pentesting agent + toolset. Depends on Steps 9+10+11 (multi-container + MCP + rate limiter). Burp via MCP, nmap/curl/python via execute_code_remote target=pentest, audit methodology in agent knowledge. Includes on-site audit mode: pentest container deployed inside client network via Ansible, agent SSHes to it.
@@ -106,6 +106,7 @@ Step 7: delegation-pipeline [DONE]
 Step 8: (absorbed into Step 5) [DONE]
 Step 9: i-ar-expansion/multi-container-execution [DONE]
 Step 10: i-ar-expansion/mcp-integration [DONE]
+Step 11: i-ar-expansion/rate-limiter [DONE]
 
 ## Removed from Roadmap
 
@@ -128,5 +129,5 @@ When working autonomously:
 
 ## Next Action
 
-Step 11: i-ar-expansion/rate-limiter
-Rate limiting for execute_code_remote. Crude version first: sleep before exec calls. Needed before autonomous pentesting against real targets.
+Step 12: i-ar-expansion/pentesting-suite
+Pentesting agent + toolset. Depends on Steps 9+10+11 (all DONE). Burp via MCP, nmap/curl/python via execute_code_remote target=pentest, audit methodology in agent knowledge. Includes on-site audit mode: pentest container deployed inside client network via Ansible, agent SSHes to it.
