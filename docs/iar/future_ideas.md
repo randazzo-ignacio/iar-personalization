@@ -88,24 +88,17 @@ Weekly counter for Ollama Cloud usage, persist across restarts. When budget exha
 
 Not relevant with local-only setup. Becomes relevant when using cloud models regularly.
 
-## One-Shot Execution Mode
+## One-Shot Execution Mode (IMPLEMENTED)
 
-One-shot execution becomes a mode in the assembly system, not a standalone feature. When assembly system supports modes:
-- interactive: no initial prompt, human provides it
-- one-shot: initial prompt from iar.sh flag, no cycle semantics
-- continuous: cycle prompt from cycles/, loop wrapper
+~~One-shot execution becomes a mode in the assembly system, not a standalone feature.~~
 
-One-shot mode: loader assembles prompt from archetype + personality + project + docs + knowledge + one-shot instructions. No CYCLE_COMPLETE, no task selection, no cooldown. Initial prompt comes from iar.sh --prompt flag.
+**Status:** Implemented as Step 7. One-shot is a seventh archetype (`agents.d/archetypes/one-shot.org`) with `#+MODE: one-shot`. Invoked via `iar.sh --one-shot --agent NAME --prompt "TEXT"`. The archetype forces one-shot behavior on any personality. Completion detected via `=== BEGIN FINAL RESPONSE ===` / `=== END FINAL RESPONSE ===` delimiters. Clean stdout (final response only), diagnostics to stderr. No memory injection, no cycles, no task selection.
 
-**Status:** On the roadmap as Step 7 (agent-architecture/phase-7-one-shot-as-mode). Not yet implemented.
+## Delegation Pipeline (IMPLEMENTED)
 
-## Delegation Pipeline
+~~Orchestrator delegates to agent-assistant, which coordinates implementer and reviewer internally.~~
 
-Orchestrator delegates to agent-assistant, which coordinates implementer and reviewer internally. agent-assistant interprets request, plans, delegates to implementer, sends result to reviewer, loops on corrections, returns final result to orchestrator. Orchestrator context stays small. Quality control built in. Correction loop limited (default 2 rounds).
-
-Three new archetypes already exist: agent-assistant, implementer, reviewer. Three new project files exist with restricted tool sets. The delegate tool needs updating to support pipeline mode (agent parameter becomes optional, defaults to agent-assistant).
-
-**Status:** On the roadmap as Step 8 (delegation-pipeline). Archetypes and projects are created. Delegate tool update and design finalization remain.
+**Status:** Implemented as Step 8. Three personality files created (agent-assistant, implementer, reviewer). Personality-to-archetype map updated with three new entries. Delegate tool updated: agent parameter is now optional, defaults to agent-assistant (pipeline mode). Tool description updated. Pre-existing bug fixed: `iar--project-for-personality` was using `user-emacs-directory` instead of `iar-personalization-path` for project file resolution. 541 tests pass.
 
 ## Auditor: Create Test Target for Non-Destructive Demos
 

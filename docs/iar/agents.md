@@ -22,16 +22,17 @@ Tool gating is per-project: `#+TOOLS` in the project file filters which tools fr
 
 ## Archetypes
 
-Six fixed archetypes in `agents.d/archetypes/`. Each has `#+MODE:` metadata that determines memory injection and completion behavior.
+Seven fixed archetypes in `agents.d/archetypes/`. Each has `#+MODE:` metadata that determines memory injection and completion behavior.
 
 | Archetype | Mode | Memory | Completion | Used By |
 |-----------|------|--------|------------|---------|
 | **interactive** | interactive | LOGS.md (last N lines) | None (human ends session) | mirror, davinci, colin |
 | **autonomous** | autonomous | STATE.org (full) | LOOP_COMPLETE / CYCLE_COMPLETE | darwin |
 | **continuous** | continuous | STATE.org (full) | LOOP_COMPLETE (every tick) | gardener, librarian |
-| **agent-assistant** | delegated | None | Response is completion | (delegation pipeline, Step 8) |
-| **implementer** | delegated | None | Response is completion | (delegation pipeline, Step 8) |
-| **reviewer** | delegated | None | Response is completion | (delegation pipeline, Step 8) |
+| **agent-assistant** | delegated | None | Response is completion | agent-assistant personality (delegate tool default) |
+| **implementer** | delegated | None | Response is completion | implementer personality (via agent-assistant) |
+| **reviewer** | delegated | None | Response is completion | reviewer personality (via agent-assistant) |
+| **one-shot** | one-shot | None | Final response between delimiters | iar.sh --one-shot --agent NAME --prompt "TEXT" |
 
 ### Personality-to-Archetype Mapping
 
@@ -42,11 +43,16 @@ The mapping is hardcoded in `iar-personality-archetype-map` in `iar-agent-loader
 | mirror | interactive | C-c a (interactive session) |
 | davinci | interactive | C-c a (interactive session) |
 | colin | interactive | C-c a (interactive session) |
+| agent-assistant | agent-assistant (delegated) | delegate tool (pipeline mode) |
+| implementer | implementer (delegated) | delegate tool (via agent-assistant) |
+| reviewer | reviewer (delegated) | delegate tool (via agent-assistant) |
 | darwin | autonomous | iar.sh --loop --agent darwin |
 | gardener | continuous | iar.sh --loop --agent gardener |
 | librarian | continuous | iar.sh --loop --agent librarian |
 
-For delegation (Step 8, not yet fully implemented): agent-assistant, implementer, and reviewer archetypes are used when the delegate tool spawns sub-agents. The delegate tool looks up the personality name, resolves the archetype via the map, and assembles the prompt.
+For delegation: agent-assistant, implementer, and reviewer personalities each map to their own archetype file (same name). The delegate tool defaults to agent-assistant when no agent is specified (pipeline mode). When an agent is specified, it spawns that personality directly (direct mode). The delegate tool resolves the archetype and project from the personality name and assembles the prompt.
+
+One-shot is not in the personality-to-archetype map. It is forced by the invocation mode (`iar.sh --one-shot`), not by the personality. Any personality can be used in one-shot mode -- the personality provides the voice, the one-shot archetype provides the behavior.
 
 ## Personalities
 
@@ -60,6 +66,9 @@ Personalities live in `agents.d/personalities/<name>.org`. They are pure voice/c
 | **librarian** | Keeper of the knowledge base. Checks source files against documentation, fixes drift | librarian |
 | **davinci** | Insatiable curiosity that refuses to stay in one lane. Study companion for degree summarization | iar |
 | **colin** | Game design partner and technical co-developer. Building an indie game together | colin |
+| **agent-assistant** | Pragmatic coordinator. Plans, delegates, evaluates. Does not do the work itself | agent-assistant |
+| **implementer** | Focused builder. Does the work, reports what was done. Does not question the task | implementer |
+| **reviewer** | Critical evaluator. Finds real problems, not style preferences. Structured review | reviewer |
 
 ## Projects
 
@@ -125,15 +134,32 @@ Tasks are per-project. Each task is a directory with a `description.org` file an
 
 ## Delegation Architecture
 
-The delegate tool spawns sub-agents with assembled prompts. Currently, delegation uses the personality name to resolve archetype and project:
+The delegate tool spawns sub-agents with assembled prompts. Two modes:
 
-1. `delegate(agent="coder", task="...")` looks up personality "coder"
-2. Resolves archetype via `iar-personality-archetype-map`
-3. Resolves project via `iar--project-for-personality`
-4. Assembles prompt via `iar--assemble-prompt`
-5. Spawns sub-agent in a separate buffer with the assembled prompt and filtered tools
+### Direct Delegation
 
-**Current state:** The delegate tool works with existing personalities. The delegation pipeline (Step 8 on the roadmap) will add agent-assistant as a sub-orchestrator that coordinates implementer and reviewer internally, with a correction loop.
+`delegate(agent="mirror", task="...")` spawns the specified personality directly. The archetype and project are resolved from the personality name via `iar-personality-archetype-map` and `iar--project-for-personality`.
+
+### Pipeline Delegation (Default)
+
+`delegate(task="...", context="...")` (no agent specified) defaults to agent-assistant. The agent-assistant interprets the request, plans the work, delegates to implementer and reviewer using the delegate tool internally, coordinates a correction loop (default max 2 rounds), and returns a final summary.
+
+### Pipeline Flow
+
+1. Orchestrator calls `delegate(task="...")` (no agent specified)
+2. agent-assistant is spawned with delegated archetype + agent-assistant project
+3. agent-assistant uses its delegate tool to spawn implementer (depth 2)
+4. agent-assistant uses its delegate tool to spawn reviewer (depth 2)
+5. If reviewer finds issues, agent-assistant re-delegates to implementer with corrections
+6. After max 2 correction rounds (or if reviewer approves), agent-assistant returns final summary
+7. Orchestrator receives only the agent-assistant's final summary
+
+### Depth Limiting
+
+- Depth 0: Top-level agent (orchestrator)
+- Depth 1: agent-assistant (can delegate)
+- Depth 2: implementer, reviewer (cannot delegate -- delegate tool removed at depth 3)
+- `iar-delegate-max-depth` (default 3) enforces this
 
 Key properties:
 - **Async**: Delegate runs in a separate buffer, Emacs stays responsive
@@ -143,6 +169,7 @@ Key properties:
 - **Timeout**: Default 600 seconds per delegation
 - **Unknown tool blocking**: Hallucinated tool names are intercepted early
 - **Result extraction**: Only the sub-agent's final summary (after `=== DELEGATION RESULT ===` marker) is returned to the parent, not raw tool output. This prevents context dilution.
+- **Correction loop**: agent-assistant self-limits to 2 correction rounds (instructed in archetype prompt, not code-enforced). After that, returns best result with "needs human review" note.
 
 ## Autonomous and Continuous Modes
 
@@ -200,3 +227,23 @@ Darwin works on ONE task across multiple cycles. The task is the PR boundary.
 5. Compare and assess: IN SYNC, DRIFT, UNDOCUMENTED, or UNCERTAIN
 6. If drift or undocumented: fix the docs, commit
 7. Update STATE.org and HISTORY.log
+### One-Shot Mode
+
+One-shot mode runs a single instruction through an agent and exits. No human conversation, no task tree, no cycles, no state.
+
+```bash
+# One-shot with mirror personality:
+iar.sh --one-shot --personalization ~/repos/iar-personalization \
+  --project iar --agent mirror \
+  --prompt "Review init.el and report any issues" \
+  --model granite4.1:8b-q8_0 --ctx 131072
+```
+
+Key design decisions:
+- The archetype is forced to "one-shot" by the entry point, not by the personality map. Any personality can be used in one-shot mode.
+- The prompt text is passed via the `IAR_ONE_SHOT_PROMPT` environment variable to avoid bash/elisp quoting issues.
+- The agent wraps its final response in `=== BEGIN FINAL RESPONSE ===` and `=== END FINAL RESPONSE ===` delimiters. The system extracts the content between them and prints it to stdout.
+- Diagnostics (token counts, progress messages) go to stderr and the log file. Stdout is clean -- only the final response.
+- Completion is detected by the delimiters, not by an explicit signal like LOOP_COMPLETE. If the agent produces a text-only response without delimiters, a nudge prompt is sent reminding it to wrap its output.
+- No continue prompts, no CYCLE_COMPLETE/LOOP_COMPLETE. Single execution, then exit.
+- Audit logging works as usual -- every tool call is logged to `audit/audit.log`. LLM responses are logged to `audit/<project>/<personality>/cycle.log`.

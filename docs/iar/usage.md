@@ -77,6 +77,30 @@ cd i.ar
 ./utils/iar.sh --loop --personalization ~/repos/iar-personalization \
   --agent darwin --project darwin --knowledge infra/ --knowledge iar/
 ```
+### Run (One-Shot Mode -- Single Instruction)
+
+```bash
+# One-shot with mirror personality:
+./utils/iar.sh --one-shot --personalization ~/repos/iar-personalization \
+  --project iar --agent mirror \
+  --prompt "Review init.el and report any issues" \
+  --model granite4.1:8b-q8_0 --ctx 131072
+
+# One-shot with darwin personality (code analysis):
+./utils/iar.sh --one-shot --personalization ~/repos/iar-personalization \
+  --project darwin --agent darwin --self-modification \
+  --prompt "Analyze the test coverage gaps in iar-tool-call.el" \
+  --model granite4.1:8b-q8_0 --ctx 131072
+
+# Pipe output to a file:
+./utils/iar.sh --one-shot --personalization ~/repos/iar-personalization \
+  --project iar --agent mirror \
+  --prompt "Summarize the architecture in 500 words" \
+  --model granite4.1:8b-q8_0 --ctx 131072 > summary.txt
+```
+
+One-shot mode sends a single instruction, the agent uses tools as needed, produces a final response (between delimiters), and exits. Stdout contains only the final response -- diagnostics go to stderr and the log file.
+
 
 ### Status Dashboard
 
@@ -93,6 +117,8 @@ cd i.ar
 | `--personalization PATH` | Yes | Mounts personalization repo at /root/personalization (contains docs/, knowledge/, projects/, tasks/, audit/) |
 | `--project NAME` | Yes | Sets IAR_PROJECT env var. Determines which project file to load. Auto-creates project file if not found. |
 | `--loop` | No | Run in autonomous loop mode (requires `--agent`) |
+| `--one-shot` | No | Run in one-shot mode (requires `--agent` and `--prompt`). Single instruction, clean stdout. |
+| `--prompt TEXT` | No | Instruction text for one-shot mode (required with `--one-shot`) |
 | `--self-modification` | No | Enables tier 2 file guard relaxation for .el file edits |
 | `--ollama-host HOST:PORT` | No | Override Ollama backend (default: from env or WireGuard IP) |
 | `--local` | No | Shortcut for `--ollama-host localhost:11434` with host networking |
@@ -108,11 +134,11 @@ cd i.ar
 | `--cycle-prompt NAME` | No | Override cycle prompt file (e.g. matrix_turn). |
 | `--status` | No | Show status dashboard (dispatches to iar-status.sh) |
 | `--help, -h` | No | Show usage and exit |
-| `--agent NAME` | Yes (loop) | Personality name (e.g., darwin, gardener, librarian) |
+| `--agent NAME` | Yes (loop, one-shot) | Personality name (e.g., darwin, gardener, librarian) |
 | `--max-cycles N` | No (loop) | Maximum number of cycles (default: 1) |
 | `--cooldown SECONDS` | No (loop) | Seconds to wait between cycles (default: 60) |
 | `--max-failures N` | No (loop) | Max consecutive failures before stopping (default: 5) |
-| `--timeout SECONDS` | No (loop) | Per-cycle timeout (default: 7200 = 120 min) |
+| `--timeout SECONDS` | No (loop, one-shot) | Per-cycle/one-shot timeout (default: 7200 = 120 min) |
 
 Environment variables:
 - `EMACBOROS_OLLAMA_HOST` -- Default Ollama host:port
@@ -120,6 +146,7 @@ Environment variables:
 - `EMACBOROS_SELF_MODIFICATION` -- Set to "1" by --self-modification flag
 - `AGENT_TELEGRAM_BOT_TOKEN` -- Telegram bot token (loop mode notifications)
 - `AGENT_TELEGRAM_CHAT_ID` -- Telegram chat ID (loop mode notifications)
+- `IAR_ONE_SHOT_PROMPT` -- One-shot instruction text (set by --prompt flag)
 
 ## Inside Emacs
 

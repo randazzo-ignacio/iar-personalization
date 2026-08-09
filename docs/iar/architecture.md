@@ -46,7 +46,7 @@ The project lives at `/root/i.ar/` and is a git repository. The Emacs configurat
     scripts/preflight.sh -- Security audit script (runs before Emacs)
     build.sh         -- Container build script
   utils/             -- Utility scripts
-    iar.sh           -- Unified entry point (interactive + loop modes, --personalization + --project flags required)
+    iar.sh           -- Unified entry point (interactive + loop + one-shot modes, --personalization + --project flags required)
     iar-status.sh    -- Status dashboard for running containers and agents
     personalization_audit.sh -- Validates personalization directory structure
     telegram.sh      -- Telegram notification helper (sourced by iar.sh)
@@ -71,13 +71,14 @@ The `prompts/` directory (bind-mounted to `agents.d/` inside the container) has 
 
 ```
 prompts/  (-> agents.d/)
-  archetypes/          -- Behavioral mode definitions (6 files)
+  archetypes/          -- Behavioral mode definitions (7 files)
     interactive.org    -- #+MODE: interactive
     autonomous.org     -- #+MODE: autonomous
     continuous.org     -- #+MODE: continuous
     agent-assistant.org -- #+MODE: delegated
     implementer.org    -- #+MODE: delegated
     reviewer.org       -- #+MODE: delegated
+    one-shot.org       -- #+MODE: one-shot
   personalities/       -- Voice/character definitions (6 files)
     mirror.org         -- Mirror agent
     darwin.org         -- Autonomous code evolver
@@ -196,13 +197,15 @@ Without `--self-modification`, agents have no access to the i.ar repo at all -- 
 
 ### iar.sh (unified entry point)
 
-iar.sh has two modes: interactive (default) and loop (`--loop`). Shared flags work in both modes; loop-only flags are marked.
+iar.sh has three modes: interactive (default), loop (`--loop`), and one-shot (`--one-shot`). Shared flags work in all modes; mode-specific flags are marked.
 
 | Flag | Required | Mode | Description |
 |------|----------|------|-------------|
 | `--personalization PATH` | Yes | Both | Mounts personalization repo at /root/personalization (contains docs/, knowledge/, projects/, tasks/, audit/) |
 | `--project NAME` | Yes | Both | Sets IAR_PROJECT env var. Determines which project file to load from personalization/projects/. Auto-creates project file if not found. |
 | `--loop` | No | Both | Run in autonomous loop mode (requires `--agent`) |
+| `--one-shot` | No | Both | Run in one-shot mode (requires `--agent` and `--prompt`). Single instruction, clean stdout. |
+| `--prompt TEXT` | No | One-shot only | Instruction text for one-shot mode. Passed via IAR_ONE_SHOT_PROMPT env var. |
 | `--self-modification` | No | Both | Enables tier 2 file guard relaxation for .el file edits |
 | `--ollama-host HOST:PORT` | No | Both | Override Ollama backend (default: from env or WireGuard IP) |
 | `--local` | No | Both | Shortcut for `--ollama-host localhost:11434` with host networking |
@@ -218,11 +221,11 @@ iar.sh has two modes: interactive (default) and loop (`--loop`). Shared flags wo
 | `--cycle-prompt NAME` | No | Both | Override cycle prompt file (e.g. matrix_turn). Defaults to personality-specific cycle or `agent_cycle.org`. |
 | `--status` | No | Both | Dispatch to iar-status.sh (status dashboard) |
 | `--help, -h` | No | Both | Show usage and exit |
-| `--agent NAME` | Yes (loop) | Loop only | Personality name (e.g., darwin, gardener, librarian) |
+| `--agent NAME` | Yes (loop, one-shot) | Loop, one-shot | Personality name (e.g., darwin, gardener, librarian) |
 | `--max-cycles N` | No | Loop only | Maximum number of cycles (default: 1) |
 | `--cooldown SECONDS` | No | Loop only | Seconds to wait between cycles (default: 60) |
 | `--max-failures N` | No | Loop only | Max consecutive failures before stopping (default: 5) |
-| `--timeout SECONDS` | No | Loop only | Per-cycle timeout (default: 7200 = 120 min) |
+| `--timeout SECONDS` | No | Loop, one-shot | Per-cycle/one-shot timeout (default: 7200 = 120 min) |
 
 Environment variables:
 - `EMACBOROS_OLLAMA_HOST` -- Default Ollama host:port
@@ -230,6 +233,7 @@ Environment variables:
 - `EMACBOROS_SELF_MODIFICATION` -- Set to "1" by --self-modification flag
 - `AGENT_TELEGRAM_BOT_TOKEN` -- Telegram bot token (loop mode notifications)
 - `AGENT_TELEGRAM_CHAT_ID` -- Telegram chat ID (loop mode notifications)
+- `IAR_ONE_SHOT_PROMPT` -- One-shot instruction text (set by --prompt flag)
 
 See `tool_gating.md` for the planned `--enable-code-exec`, `--enable-elisp`, and `--danger-zone` flags.
 
