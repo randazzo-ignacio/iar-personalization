@@ -1,0 +1,70 @@
+* PID Controller
+
+A PID (Proportional-Integral-Derivative) controller is a feedback control loop mechanism widely used in industrial control systems. It calculates an error value as the difference between a desired setpoint and a measured process variable, then applies a correction based on proportional, integral, and derivative terms.
+
+** Mathematical Definition
+
+The PID controller output u(t) is:
+
+u(t) = K_p * e(t) + K_i * integral_0^t e(tau) d(tau) + K_d * de(t)/dt
+
+Where:
+- e(t) = r(t) - y(t)  is the error (setpoint minus process variable)
+- K_p = proportional gain
+- K_i = integral gain
+- K_d = derivative gain
+
+** Discrete Implementation
+
+In digital systems, the continuous integral and derivative are approximated:
+
+- Integral: I += e * dt  (accumulating sum)
+- Derivative: D = (e - e_prev) / dt  (finite difference)
+
+Discrete PID:
+
+u = K_p * e + K_i * I + K_d * D
+
+Where I is the accumulated integral term and D is the finite-difference derivative.
+
+** Stability and Tuning
+
+- K_p: Reduces rise time, increases overshoot, reduces steady-state error
+- K_i: Eliminates steady-state error, increases overshoot, slows transient response
+- K_d: Reduces overshoot, improves transient response, amplifies noise
+
+Common tuning methods:
+- Ziegler-Nichols: Set K_i=0, K_d=0, increase K_p until sustained oscillation (K_u), measure period (T_u). Then K_p=0.6*K_u, K_i=2*K_p/T_u, K_d=K_p*T_u/8
+- Manual: Start with K_p, add K_i to remove steady-state error, add K_d to reduce overshoot
+
+** Test System: First-Order Plant
+
+For verification, we use a first-order plant with transfer function:
+
+G(s) = 1 / (tau * s + 1)
+
+Where tau is the plant time constant. The discrete simulation updates:
+
+y[k+1] = y[k] + (dt / tau) * (u[k] - y[k])
+
+This is a simple low-pass filter. The PID controller drives y toward the setpoint r.
+
+** Verification Parameters
+
+- K_p = 2.0
+- K_i = 5.0
+- K_d = 0.1
+- tau = 1.0 (plant time constant)
+- dt = 0.01 (simulation timestep)
+- setpoint = 1.0
+- simulation time = 10.0 seconds (1000 steps)
+
+Expected behavior:
+- Output rises toward setpoint, overshoots to ~1.10 around t=1.5s
+- Settles to setpoint by t=5s
+- Steady-state error approaches zero (integral term)
+- All implementations should produce identical numerical results
+
+** Cross-Implementation Verification
+
+All implementations (Ruby, C, Verilog, ngspice) must produce the same output for the same parameters and timestep. The test harness (test.rb) runs each implementation, captures output at key timesteps, and compares within floating-point tolerance (1e-6).

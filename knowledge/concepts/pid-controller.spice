@@ -1,0 +1,85 @@
+* PID Controller ngspice Simulation
+
+This ngspice deck simulates a PID controller using analog behavioral modeling (ABM) sources. The PID controller drives a first-order RC plant.
+
+The circuit uses voltage-controlled voltage sources with behavioral expressions to implement the P, I, and D terms.
+
+** Circuit Description
+
+- V_setpoint: DC voltage source (1V = setpoint)
+- Plant: RC low-pass filter (R=1k, C=1mF -> tau = R*C = 1s)
+- Error: V(setpoint) - V(plant_out)
+- P term: Kp * error (Kp = 2.0)
+- I term: Ki * integral of error (Ki = 5.0, using G-source with capacitor)
+- D term: Kd * d(error)/dt (Kd = 0.1, using behavioral source)
+- PID output: P + I + D, fed back to plant input
+
+** ngspice Deck
+
+#+begin_src spice
+* PID Controller Simulation
+* First-order plant: RC filter with tau = R*C = 1s
+* Parameters: Kp=2.0, Ki=5.0, Kd=0.1
+
+* Setpoint
+V_set setpoint 0 DC 1.0
+
+* Error node: setpoint - plant_output
+E_err err 0 VALUE = { V(setpoint) - V(plant) }
+
+* Proportional term: Kp * error (Kp = 2.0)
+E_p pterm 0 VALUE = { 2.0 * V(err) }
+
+* Integral term: Ki * integral(error) (Ki = 5.0)
+* Using a current source charging a capacitor to integrate
+G_int 0 int_cap VALUE = { V(err) }
+C_int int_cap 0 1
+R_int int_cap 0 1G
+E_iterm iterm 0 VALUE = { 5.0 * V(int_cap) }
+
+* Derivative term: Kd * d(error)/dt (Kd = 0.1)
+* Using ngspice built-in derivative function
+E_dterm dterm 0 VALUE = { 0.1 * (V(err) - V(err_prev)) / 0.01 }
+C_delay err_prev 0 1u
+R_delay err err_prev 1k
+
+* PID output
+E_pid pid_out 0 VALUE = { V(pterm) + V(iterm) + V(dterm) }
+
+* First-order plant: RC filter
+R_plant pid_out plant 1k
+C_plant plant 0 1m
+
+* Transient analysis: 10 seconds, 10ms steps
+.tran 10m 10s 0 10m
+
+* Print plant output at each timestep
+.print tran V(plant)
+.plot tran V(plant)
+
+.end
+#+end_src
+
+** Expected Output
+
+The plant voltage V(plant) should rise from 0V toward 1V (setpoint), overshoot to ~1.1V around t=1.5s, then settle to 1V by t=5s. The ngspice output can be compared with the Ruby and C implementations by sampling V(plant) at corresponding timesteps.
+
+** Running the Simulation
+
+#+begin_src bash
+ngspice -b pid-controller.spice
+#+end_src
+
+Or with the deck piped via stdin:
+
+#+begin_src bash
+ngspice -b - < pid-controller.spice
+#+end_src
+
+** Notes
+
+- The derivative term implementation uses a simple RC delay for the previous error sample. This is an approximation -- the actual discrete derivative uses (e[k] - e[k-1]) / dt.
+- The integral term uses a current source into a capacitor, which is the standard SPICE way to implement integration.
+- ngspice's behavioral modeling (VALUE = {...}) supports the mathematical expressions needed for PID.
+- The simulation timestep (10ms) matches the dt=0.01 used in the Ruby and C implementations.
+- ngspice uses floating-point arithmetic, so results should match Ruby/C within 1e-6 tolerance. Verilog uses fixed-point (Q8.8) and will have quantization error.

@@ -1,0 +1,1 @@
+PID controller: proportional-integral-derivative feedback control. Validates full sparse matrix of implementations (Ruby, C, Verilog, GLSL, ngspice).

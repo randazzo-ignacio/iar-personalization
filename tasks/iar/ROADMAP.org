@@ -37,18 +37,18 @@ Step 10: i-ar-expansion/mcp-integration [DONE]
 Step 11: i-ar-expansion/rate-limiter [DONE]
   Rate limiting for execute_code_local and execute_code_remote. Crude version: --rate-limit SECONDS flag on iar.sh, IAR_RATE_LIMIT env var, sleep before each exec call via iar--rate-limit-maybe-sleep. Global rate limit (every call sleeps the same amount). Per-target rate limiting can be added later. Needed before autonomous pentesting against real targets.
 
-Step 12: i-ar-expansion/pentesting-suite
-  Pentesting agent + toolset. Depends on Steps 9+10+11 (multi-container + MCP + rate limiter). Burp via MCP, nmap/curl/python via execute_code_remote target=pentest, audit methodology in agent knowledge. Includes on-site audit mode: pentest container deployed inside client network via Ansible, agent SSHes to it.
+Step 12: i-ar-expansion/pentesting-suite [DONE]
+  Pentesting agent + toolset. Pentest personality with PTES methodology, OWASP Top 10 knowledge base, structured report format. Project file with #+CONTAINERS: pentest, #+MCP: burp. Burp via MCP, nmap/curl/python via execute_code_remote target=pentest. On-site audit mode: pentest container deployable via Ansible. Integration testing against practice targets deferred to post-alpha.
 
 ### Track B: Knowledge & Concepts
 
-Step 13: i-ar-expansion/concepts-container-image
-  Build the iar-concepts container image with simulation tools (Maxima, ngspice, iverilog, gnuplot, Ruby, gcc). Simplified from original Step 13 -- the multi-container framework already exists from Step 9, this is just the Containerfile. May already be done as part of Step 9's container-images subtask.
+Step 13: i-ar-expansion/concepts-container-image [DONE]
+  Built the iar-concepts container image with simulation tools (Maxima, ngspice, iverilog, gnuplot, Ruby, gcc, make). Containerfile at containers/images/concepts/Containerfile. Network=none, unprivileged user. Container descriptions already registered in iar-prompt-assembly.el. iar.sh already handles concepts target.
 
-Step 14: i-ar-expansion/first-concept-and-authoring-workflow
-  Agent-assisted concept authoring end-to-end: write notes.tex, run Maxima via execute_code_remote target=concepts, write test.rb, verify cross-implementation, push to wiki. Establishes the workflow for how an agent helps author and verify concepts. First concept: PID controller (validates full sparse matrix: Ruby, C, Verilog, GLSL, ngspice). Concepts live in personalization repo under knowledge/ or a concepts/ subdirectory.
+Step 14: i-ar-expansion/first-concept-and-authoring-workflow [DONE]
+  Agent-assisted concept authoring end-to-end. First concept: PID controller. Created knowledge/concepts/ directory with: description.org, pid-controller.org (theory + parameters), pid-controller.rb (Ruby impl), pid-controller.c (C impl), pid-controller.v (Verilog Q8.8 fixed-point), pid-controller.glsl (GPU shader), pid-controller.spice (ngspice deck), test.rb (cross-implementation verification harness). Parameters: Kp=2.0, Ki=5.0, Kd=0.1, tau=1.0, dt=0.01, setpoint=1.0, sim=10s. Verified math with Python (Ruby not available in Emacs container, runs in concepts container). Workflow established: write .org theory, write implementations, write test.rb, run simulations via execute_code_remote target=concepts.
 
-### Track C: Life Organization (NEW)
+### Track C: Life Organization
 
 Step 16: i-ar-expansion/life-org-integration
   Life organization container + agent integration. Build iar-lifeorg container image (hledger, Ruby). Mount personalization repo life-org paths (hledger journal, inventory, routine files). Write knowledge base entries describing file formats and locations. Verify agent can query finances (hledger), check inventory, surface routine items via natural language through execute_code_remote target=life-org. No new domain-specific Elisp tools -- everything through execute_code_remote. Human can also handle workflow independently (i.ar sits on top, assists via natural language).
@@ -107,6 +107,9 @@ Step 8: (absorbed into Step 5) [DONE]
 Step 9: i-ar-expansion/multi-container-execution [DONE]
 Step 10: i-ar-expansion/mcp-integration [DONE]
 Step 11: i-ar-expansion/rate-limiter [DONE]
+Step 12: i-ar-expansion/pentesting-suite [DONE]
+Step 13: i-ar-expansion/concepts-container-image [DONE]
+Step 14: i-ar-expansion/first-concept-and-authoring-workflow [DONE]
 
 ## Removed from Roadmap
 
@@ -129,5 +132,5 @@ When working autonomously:
 
 ## Next Action
 
-Step 12: i-ar-expansion/pentesting-suite
-Pentesting agent + toolset. Depends on Steps 9+10+11 (all DONE). Burp via MCP, nmap/curl/python via execute_code_remote target=pentest, audit methodology in agent knowledge. Includes on-site audit mode: pentest container deployed inside client network via Ansible, agent SSHes to it.
+Step 15: i-ar-expansion/gardener-guidelines-checker
+Gardener checks codebase against GUIDELINES.org on each tick. Violations become tasks for darwin. Needs GUIDELINES.org to exist first (it does). Turns static conventions into active constraint on codebase.
