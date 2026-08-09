@@ -146,6 +146,16 @@ Inside the container, all paths resolve through `iar-personalization-path` (defa
 - `tasks/` -> `/root/personalization/tasks/` (task tools)
 - `audit/` -> `/root/personalization/audit/` (audit log, history, memory)
 
+### Project File Format
+
+Each project file (`projects/<name>.org`) contains the following metadata directives:
+
+- `#+KNOWLEDGE:` -- Space-separated list of doc subdirectory labels to auto-load (e.g., `iar/ infra/ user/`)
+- `#+TOOLS:` -- Space-separated list of tool names to register. If absent, all tools registered
+- `#+CONTAINERS:` -- Space-separated list of sidecar container targets to start (e.g., `pentest`). When present, `execute_code_remote` is automatically registered and available targets are injected into the system prompt. If absent, no sidecar containers are started and `execute_code_remote` is not available.
+- `#+MOUNTS:` -- Space-separated list of `path:mode` pairs (e.g., `/var/home/nacho/repos/i.ar:rw`). If absent, no project-specific mounts
+- `#+OBJECTIVE:` -- Free-text scope/goal injected into the prompt
+
 ### Cloning
 
 - `git clone i.ar` -- use the tool (personalization submodule not initialized)
@@ -157,34 +167,6 @@ Users should create their own personalization repo with their own knowledge base
 
 The Emacs environment runs inside a Podman container built from `quay.io/fedora/fedora-minimal`. This is the primary container (emacboros image). In addition, i.ar supports purpose-specific sidecar containers that extend agent capabilities with isolated execution environments.
 
-### Multi-Container Model
-
-i.ar uses a multi-container architecture where the Emacs container is the primary process and sidecar containers provide specialized execution environments:
-
-- **Emacs container (emacboros)**: The main container running Emacs + gptel + all i.ar modules. Agents live here. This container has no outbound internet by default (WireGuard-only for Ollama access).
-- **Pentest container (iar-pentest)**: Purpose-built container for security testing. Includes nmap, curl, python3, openssl, whois, traceroute, tcpdump, dig, jq, rg, gawk, sed, grep, git, tar, gzip, unzip, make, gcc. Runs as unprivileged user `pentest`. Has outbound internet access. No personal data mounted. Shared workspace at `/workspace`. More container images (concepts, life-org, debug) will be added in future steps.
-
-Sidecar containers are started by `iar.sh` based on the project's `#+CONTAINERS` metadata. Each sidecar gets a shared workspace directory (created via `mktemp -d`) mounted at `/workspace` in both the Emacs container and the sidecar. Container naming follows `iar-<target>-<PID>` for cleanup tracking.
-
-Per-container network policy:
-- `pentest`: bridge networking (outbound internet access)
-- `concepts`, `life-org`: no networking (network-isolated)
-- `debug`: network policy depends on deployment context
-
-### Remote Debug Containers
-
-i.ar supports remote debug containers deployed on infrastructure hosts via Ansible. The `iar-debug-container` role deploys a debug container with:
-- Host root filesystem mounted read-only at `/host` (for inspection)
-- SSH key-only authentication
-- Unprivileged `debug-agent` user
-- Accessible over WireGuard for remote debugging sessions
-
-The `debug_container_hosts` inventory group (sophon + rammstein) defines which hosts run debug containers. The `debug-containers.yml` playbook manages deployment.
-
-### On-Site Audit Container Deployment
-
-The pentest container image can be deployed on-site for security audits. The `iar-debug-container` role includes a template for pentest container deployment, enabling agents to run security assessments against on-site infrastructure. The pentest container has outbound internet access and is isolated from personal data.
-
 ### Container Hardening (Emacs Container)
 
 - **Read-only root filesystem**: Overlay is read-only, only bind-mounted paths are writable
@@ -192,6 +174,28 @@ The pentest container image can be deployed on-site for security audits. The `ia
 - **Memory limit**: Default 8g, configurable via `--memory` flag. Prevents host OOM kills on long sessions.
 - **Preflight audit**: `preflight.sh` runs before Emacs starts, checks for dangerous writable paths, capability leaks, and host mount surprises. Exits non-zero if any check fails.
 - **Dangerous paths blocked**: `.git/hooks`, `docker.sock`, cron, systemd, ssh are checked for writability
+
+## Multi-Container Architecture
+
+i.ar uses a multi-container architecture where the Emacs container is the primary process and sidecar containers provide specialized execution environments. Purpose-specific containers (pentest, concepts, life-org, debug) are accessed by agents via the `execute_code_remote(target, command)` tool. Each container has its own image, mounts, and network policy. A shared workspace at `/workspace` bridges files between the Emacs container and local sidecar containers.
+
+### Container Types
+
+- **Emacs container (emacboros)**: The main container running Emacs + gptel + all i.ar modules. Agents live here. This container has no outbound internet by default (WireGuard-only for Ollama access).
+- **Pentest container (iar-pentest)**: Purpose-built container for security testing. Includes nmap, curl, python3, openssl, whois, traceroute, tcpdump, dig, jq, rg, gawk, sed, grep, git, tar, gzip, unzip, make, gcc. Runs as unprivileged user `pentest`. Has outbound internet access. No personal data mounted. Shared workspace at `/workspace`.
+- **Concepts container** (future): Network-isolated container for concept exploration and research. No outbound networking.
+- **Life-org container** (future): Network-isolated container for life organization tasks. No outbound networking.
+- **Debug container**: Remote debugging container deployed on infrastructure hosts. See "Remote Debug Containers" below.
+
+### Container Lifecycle
+
+Sidecar containers are started by `iar.sh` based on the project's `#+CONTAINERS` metadata. Each sidecar gets a shared workspace directory (created via `mktemp -d`) mounted at `/workspace` in both the Emacs container and the sidecar. Container naming follows `iar-<target>-<PID>` for cleanup tracking. `iar.sh` manages the full lifecycle: starts sidecars before launching Emacs, tears them down on exit (interactive, loop, and one-shot modes) via trap-based cleanup.
+
+### Per-Container Network Policy
+
+- `pentest`: bridge networking (outbound internet access)
+- `concepts`, `life-org`: no networking (network-isolated)
+- `debug`: SSH over WireGuard (remote host access)
 
 ### Sidecar Container Hardening
 
@@ -201,6 +205,21 @@ The pentest container image can be deployed on-site for security audits. The `ia
 - **Network isolation**: Per-container network policy controls outbound access (bridge for pentest, none for concepts/life-org)
 - **Shared workspace only**: Sidecars share a single workspace directory with the Emacs container at `/workspace`
 - **Trap-based cleanup**: `iar.sh` ensures sidecar containers are stopped on exit (interactive, loop, and one-shot modes)
+
+### Remote Debug Containers
+
+i.ar supports remote debug containers deployed on infrastructure hosts via Ansible. The `iar-debug-container` role deploys a debug container with:
+- Host root filesystem mounted read-only at `/host` (for inspection)
+- SSH key-only authentication
+- Unprivileged `debug-agent` user
+- Accessible over WireGuard for remote debugging sessions
+- Linux file permissions filter sensitive files (host root mounted read-only, unprivileged user cannot read files owned by root with restrictive permissions)
+
+The `debug_container_hosts` inventory group (sophon + rammstein) defines which hosts run debug containers. The `debug-containers.yml` playbook manages deployment.
+
+### On-Site Audit Container Deployment
+
+The pentest container image can be deployed on-site for security audits. The `iar-debug-container` role includes a template for pentest container deployment, enabling agents to run security assessments against on-site infrastructure. The pentest container is deployed inside the client network via Ansible, and the agent SSHes to it over WireGuard to run security tools. The pentest container has outbound internet access and is isolated from personal data.
 
 ## Bind Mounts
 
@@ -220,6 +239,12 @@ The pentest container image can be deployed on-site for security audits. The `ia
 - A temporary directory (created via `mktemp -d`) is mounted at `/workspace` in both the Emacs container and all sidecar containers
 - Used for file exchange between the Emacs agent and sidecar execution environments
 - Cleaned up on container exit via trap-based cleanup
+
+**Per-container mounts:**
+- `pentest`: `/workspace` only (no personalization, no docs, no knowledge bases)
+- `concepts` (future): `/workspace` + `concepts/` directory from personalization
+- `life-org` (future): `/workspace` + personalization life-org paths
+- `debug`: host root filesystem mounted read-only at `/host` (for inspection)
 
 **Only mounted with `--self-modification`:**
 - `/root/i.ar/.git` -> `/root/i.ar/.git` (git repo access for darwin commits)
@@ -327,7 +352,7 @@ Ollama request params: temperature 0.7, top_p 0.90, num_ctx 1048576 (1M), num_pr
 4. **Key-only SSH**: Password auth disabled, fail2ban active.
 5. **Firewalld**: Every host runs firewalld -- default deny incoming.
 6. **AI agent isolation**: Container with dropped capabilities, read-only rootfs, preflight audit, memory limit.
-7. **Multi-container isolation**: Purpose-specific sidecar containers provide isolated execution environments. Each container type has its own network policy, filesystem, and user namespace. The Emacs container has no outbound internet; pentest containers have bridge networking; concepts/life-org containers have no networking. Physical separation between containers -- sidecars do not share filesystems with the Emacs container except the shared workspace at `/workspace`.
+7. **Multi-container isolation**: Purpose-specific sidecar containers provide isolated execution environments. Each container type has its own network policy, filesystem, and user namespace. The Emacs container has no outbound internet; pentest containers have bridge networking; concepts/life-org containers have no networking. Physical separation between containers -- sidecars do not share filesystems with the Emacs container except the shared workspace at `/workspace`. The pentest container cannot see personalization data; the life-org container cannot reach the internet.
 8. **File guard**: Emacs-level protection of critical files (archetype/personality/cycle files, base context, history logs, LOGS.md, STATE.org). Self-modification mode can relax protection for .el files but NEVER for prompt files or shared context.
 9. **Tool gating**: Per-project tool filtering via `#+TOOLS` metadata. Each project declares which tools its agents can use. `execute_code_remote` is gated by `#+CONTAINERS` metadata -- it is automatically registered when containers are declared, not listed in `#+TOOLS`.
 10. **Debug instrumentation**: Status mode provides always-on visibility into agent behavior via mode-line display.
