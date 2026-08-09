@@ -338,7 +338,7 @@ Every Ansible role in the infrastructure repo, what it does, and where it runs.
 
 ## iar-debug-container
 
-**Runs on:** debug_container_hosts group (sophon, rammstein)
+**Runs on:** debug_container_hosts group (sophon, rammstein), conditional on `iar_debug_container_enabled`
 
 **What it does:**
 - Deploys a debug container on infrastructure hosts for remote i.ar agent access
@@ -346,19 +346,24 @@ Every Ansible role in the infrastructure repo, what it does, and where it runs.
 - SSH key-only authentication (no password auth)
 - Runs as unprivileged `debug-agent` user
 - Accessible over WireGuard for remote debugging sessions
-- Includes a template for pentest container deployment (on-site audit deployment)
+- Linux file permissions filter sensitive files: WireGuard keys (0600 root:root), vault files, SSH host keys are unreadable by the unprivileged container user
+- Also supports deploying a pentest container for on-site security audits
 
 **Templates:**
-- Debug container systemd service template
-- Pentest container deployment template (for on-site security audits)
+- `iar-debug-container.service.j2` -- systemd unit for the debug container
+- `iar-pentest-container.service.j2` -- systemd unit for the pentest container (on-site audit deployment)
 
 **Key variables:**
-- `debug_container_image` -- Container image for debug container
-- `debug_agent_user` (debug-agent) -- Unprivileged user inside the container
-- `debug_container_host_mount` (/host) -- Host root filesystem mount point (read-only)
+- `iar_debug_container_enabled` -- Whether to deploy the debug container (default: true on debug_container_hosts)
+- `iar_debug_container_image` -- Container image for the debug container
+- `iar_debug_user` -- Unprivileged user inside the container (default: debug-agent)
+- `iar_debug_ssh_public_key` -- SSH public key for agent access to the debug container
+- `iar_debug_memory_limit` -- Memory limit for the debug container
+- `iar_debug_host_mount` -- Host root filesystem mount point inside the container (default: /host, read-only)
+- `iar_pentest_container_enabled` -- Whether to also deploy the pentest container for on-site audits (default: false)
 
 **Playbook:** `playbooks/debug-containers.yml` -- Manages debug container deployment across `debug_container_hosts`.
 
 **Inventory group:** `debug_container_hosts` -- Defines which hosts run debug containers. Currently includes sophon and rammstein.
 
-**On-Site Audit Deployment:** The role includes a template for deploying the pentest container image on-site for security audits. The pentest container has outbound internet access, runs as unprivileged user, and is isolated from personal data. This enables agents to run security assessments against on-site infrastructure via `execute_code_remote` over WireGuard SSH.
+**On-Site Audit Deployment:** The role includes a template (`iar-pentest-container.service.j2`) for deploying the pentest container image on-site for security audits. The pentest container has outbound internet access, runs as an unprivileged user, and is isolated from personal data. This enables agents to run security assessments against on-site infrastructure via `execute_code_remote` over WireGuard SSH.

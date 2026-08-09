@@ -76,6 +76,7 @@ This provides automated drift detection between code and documentation.
 | Maintenance process change | this file (`workflow.md`) |
 | Roadmap updated | `tasks/<project>/ROADMAP.org` (via write_roadmap tool) |
 | Tool gating behavior change | `tools.md` + `tool_gating.md` |
+| `execute_code_remote` behavior change | `tools.md` |
 
 ## Size Management
 

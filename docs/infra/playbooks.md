@@ -14,6 +14,7 @@
 | monitoring.yml | all + daftpunk | node-exporter, monitoring | Monitoring stack |
 | portfolio-page.yml | rammstein | portfolio-page | Portfolio deployment |
 | static-page.yml | daftpunk | static-page | Landing page deployment |
+| debug-containers.yml | debug_container_hosts | iar-debug-container | Debug container deployment for remote agent access |
 
 ---
 
@@ -133,6 +134,24 @@ Deploys i.ar landing page to daftpunk. Caddy serves files from /var/www/emacboro
 
 ```bash
 ansible-playbook playbooks/static-page.yml --vault-password-file .vault_pass
+```
+
+---
+
+## debug-containers.yml
+
+Deploys debug containers on `debug_container_hosts` (sophon, rammstein) for remote i.ar agent access. Managed by the `iar-debug-container` role.
+
+**What it deploys:**
+- Debug container with host root filesystem mounted read-only at `/host`
+- SSH server with key-only authentication (unprivileged `debug-agent` user)
+- Optionally, a pentest container for on-site security audits (controlled by `iar_pentest_container_enabled`)
+
+**Usage:**
+```bash
+ansible-playbook playbooks/debug-containers.yml --vault-password-file .vault_pass
+# Deploy with pentest container enabled:
+ansible-playbook playbooks/debug-containers.yml --vault-password-file .vault_pass -e iar_pentest_container_enabled=true
 ```
 
 ---

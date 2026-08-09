@@ -139,4 +139,5 @@ Debug containers are deployed on infrastructure hosts via the `iar-debug-contain
 - **Hosts:** sophon, rammstein (defined in `debug_container_hosts` inventory group)
 - **Playbook:** `playbooks/debug-containers.yml`
 - **Container features:** Host root filesystem mounted read-only at `/host`, SSH key-only auth, unprivileged `debug-agent` user
-- **On-site audit:** The role includes a template for deploying the pentest container image on-site for security assessments. The pentest container has outbound internet access and is isolated from personal data. Agents can run commands in the pentest container via `execute_code_remote` over WireGuard SSH.
+- **Linux file permissions:** Sensitive files (WireGuard keys 0600 root:root, vault files, SSH host keys) are unreadable by the unprivileged container user
+- **On-site audit capability:** The role includes a template (`iar-pentest-container.service.j2`) for deploying the pentest container image on-site for security assessments. The pentest container has outbound internet access, runs as an unprivileged user, and is isolated from personal data. Agents can run commands in the pentest container via `execute_code_remote` over WireGuard SSH. Controlled by `iar_pentest_container_enabled` variable.

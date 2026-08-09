@@ -16,7 +16,12 @@
 | Tool | Args | Description |
 |------|------|-------------|
 | `execute_code_local` | `command` (required) | Run bash command in the container. Uses `:connection-type 'pipe` (no pty allocation). Full toolset available: bash, dig, nmap, openssl, python3, jq, whois, traceroute, tcpdump, rg, git, curl, find, gawk, sed, grep, gcc, make, tar, gzip, unzip. Audit-logged via `iar--audit-log-exec`. |
-| `execute_code_remote` | `target` (required), `command` (required) | Run bash command in a sidecar container or remote host. **Local targets**: resolved from `IAR_CONTAINER_<target>` env var (e.g., `IAR_CONTAINER_PENTEST`), executed via `podman exec`. **Remote targets**: resolved from `iar-remote-targets` defcustom or `IAR_REMOTE_TARGETS` env var, executed via SSH over WireGuard using `make-process` with explicit argv (no shell injection surface). SSH uses key-only auth. Target validation against buffer-local `iar--current-containers`. Output sanitization via `iar--sanitize-exec-output`. Async tool. Audit-logged. Provide symbol: `iar-tool--execute-code-remote`. |
+
+### Remote Container Execution (tools/code/)
+
+| Tool | Args | Description |
+|------|------|-------------|
+| `execute_code_remote` | `target` (required), `command` (required) | Execute bash commands in a purpose-specific container (local or remote). Local targets run via `podman exec` into running containers (resolved from `IAR_CONTAINER_<target>` env var). Remote targets run via SSH over WireGuard (`iar-remote-targets` defcustom or `IAR_REMOTE_TARGETS` env var). SSH uses `make-process` with explicit argv (no shell injection surface). Key-only auth. Async tool with same pattern as `execute_code_local`. Output sanitization via `iar--sanitize-exec-output` when enabled. Target validation via `iar--current-containers` buffer-local (set from project `#+CONTAINERS`). Registered via `iar-tool-register`. Audit-logged. Provide symbol: `iar-tool--execute-code-remote`. |
 
 ### Code Quality (tools/code/)
 
@@ -89,7 +94,7 @@ This gives darwin filesystem, code execution, task management, git, and roadmap 
 
 If `#+TOOLS` is absent from a project file, all registered tools are available (backward compat).
 
-**Container-gated tool:** `execute_code_remote` is gated by `#+CONTAINERS` metadata, not `#+TOOLS`. When a project declares `#+CONTAINERS: pentest`, the `execute_code_remote` tool is automatically registered by `iar--filter-tools` (which accepts an optional `containers` argument). It does not need to be listed in `#+TOOLS`. Available container targets are injected into the system prompt via `iar--format-containers`.
+**Container-gated tool:** `execute_code_remote` is gated by `#+CONTAINERS` metadata, not `#+TOOLS`. When a project declares `#+CONTAINERS` (e.g., `#+CONTAINERS: pentest`), the `execute_code_remote` tool is automatically included in the tool list by `iar--filter-tools` (which accepts an optional `containers` argument -- when non-nil, `execute_code_remote` is always added). It does not need to be listed in `#+TOOLS`. Available container targets are injected into the system prompt via `iar--format-containers`, which uses `iar--container-descriptions` (a defconst mapping target names to brief descriptions). When `#+CONTAINERS` is absent from a project file, `execute_code_remote` is not available -- the tool is not registered and sidecar containers are not started.
 
 See `tool_gating.md` for the planned `--enable-code-exec`, `--enable-elisp`, and `--danger-zone` flags that will add container-level tool gating on top of the project-level gating.
 
@@ -120,7 +125,13 @@ Self-modification mode is controlled by the `EMACBOROS_SELF_MODIFICATION` enviro
 
 ### Multi-Container Physical Separation
 
-Sidecar containers (pentest, concepts, life-org, debug) provide physical filesystem isolation -- they do not share the Emacs container's filesystem except for the shared workspace at `/workspace`. This means file guard is not the security boundary for sidecar execution; physical separation is. Each sidecar container type has its own image, user namespace, and network policy. No personalization data, prompts, or Emacs configuration is mounted into sidecars.
+The multi-container model provides physical filesystem separation per purpose, replacing the need for file guard patches on `execute_code_local`. Sidecar containers (pentest, concepts, life-org, debug) do not share the Emacs container's filesystem except for the shared workspace at `/workspace`. Each sidecar container type has its own image, user namespace, and network policy:
+
+- The **pentest** container has bridge networking (outbound internet) but cannot see the personalization repo, docs, or knowledge bases -- no personal data is mounted into it.
+- The **concepts** and **life-org** containers (future) have no networking at all -- they cannot reach the internet.
+- The **debug** container mounts the host root filesystem read-only at `/host` for inspection, accessed via SSH over WireGuard with an unprivileged user.
+
+This means file guard is not the security boundary for sidecar execution; physical container separation is. No personalization data, prompts, or Emacs configuration is mounted into sidecars. The `--no-containers` flag on `iar.sh` force-disables sidecar containers regardless of `#+CONTAINERS` in the project file.
 
 ## Audit Logging
 

@@ -80,16 +80,16 @@ Projects live in `personalization/projects/<name>.org`. Each project file contai
 - `#+MOUNTS:` -- space-separated list of `path:mode` pairs (e.g., `/var/home/nacho/repos/i.ar:rw`). If absent, no project-specific mounts
 - `#+OBJECTIVE:` -- free-text scope/goal injected into the prompt
 
-| Project | Knowledge | Tools | Mounts | Objective |
-|---------|-----------|-------|--------|-----------|
-| **iar** | iar/, infra/, user/ | All tools | /var/home/nacho/repos/iar-infrastructure:rw | General-purpose i.ar development, infrastructure management, security research |
-| **darwin** | iar/ | list, read, write, append, exec, check_elisp, task tools, git, roadmap | /var/home/nacho/repos/i.ar:rw | Autonomous code evolution. One small change per cycle, test, commit, log |
-| **gardener** | iar/ | list, read, exec, task tools, roadmap | (none) | Codebase monitoring. Pull latest, run tests, diagnose failures, write tasks for darwin |
-| **librarian** | iar/ | list, read, write, append, exec, task tools, git, telegram | /var/home/nacho/repos/i.ar:rw | Documentation sync. Check source against docs/iar/, fix drift, commit |
-| **colin** | user/ | list, read, write, append, exec, check_elisp, task tools, git, delegate | (none) | Game design and development in Godot 4 |
-| **agent-assistant** | iar/ | delegate, read, list, exec | (none) | Sub-orchestration for delegation pipeline |
-| **implementer** | iar/ | list, read, write, append, exec, check_elisp, git | (none) | Focused code execution for delegation pipeline |
-| **reviewer** | iar/ | list, read, exec, check_elisp | (none) | Critical evaluation for delegation pipeline |
+| Project | Knowledge | Tools | Containers | Mounts | Objective |
+|---------|-----------|-------|------------|--------|-----------|
+| **iar** | iar/, infra/, user/ | All tools | (none) | /var/home/nacho/repos/iar-infrastructure:rw | General-purpose i.ar development, infrastructure management, security research |
+| **darwin** | iar/ | list, read, write, append, exec, check_elisp, task tools, git, roadmap | (none) | /var/home/nacho/repos/i.ar:rw | Autonomous code evolution. One small change per cycle, test, commit, log |
+| **gardener** | iar/ | list, read, exec, task tools, roadmap | (none) | (none) | Codebase monitoring. Pull latest, run tests, diagnose failures, write tasks for darwin |
+| **librarian** | iar/ | list, read, write, append, exec, task tools, git, telegram | (none) | /var/home/nacho/repos/i.ar:rw | Documentation sync. Check source against docs/iar/, fix drift, commit |
+| **colin** | user/ | list, read, write, append, exec, check_elisp, task tools, git, delegate | (none) | (none) | Game design and development in Godot 4 |
+| **agent-assistant** | iar/ | delegate, read, list, exec | (none) | (none) | Sub-orchestration for delegation pipeline |
+| **implementer** | iar/ | list, read, write, append, exec, check_elisp, git | (none) | (none) | Focused code execution for delegation pipeline |
+| **reviewer** | iar/ | list, read, exec, check_elisp | (none) | (none) | Critical evaluation for delegation pipeline |
 
 The `iar--project-for-personality` function resolves projects: if a project file matching the personality name exists, it uses that. Otherwise, it falls back to the `iar` project.
 

@@ -103,6 +103,8 @@ The `execute_code_remote` tool does not bypass any Emacs-level security -- it ru
 - **No personal data**: Sidecars do not mount personalization, docs, or knowledge bases
 - **Shared workspace only**: The only shared filesystem is `/workspace` (temp directory)
 
+The physical separation model means that file guard is not the security boundary for sidecar execution -- physical container isolation is. No personalization data, prompts, or Emacs configuration is mounted into sidecars. The `--no-containers` flag on `iar.sh` force-disables sidecar containers regardless of `#+CONTAINERS` in the project file.
+
 ## Design Decision: No Friction-Based Security
 
 i.ar rejects adding elisp-level guards (e.g., pattern interception in `execute_elisp`). Rationale:
