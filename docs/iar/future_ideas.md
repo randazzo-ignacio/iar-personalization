@@ -116,7 +116,7 @@ This absorbed the following earlier ideas (both now COMPLETED -- the multi-conta
 - Ensure it has XSS, info disclosure, misconfig examples
 - Keep it isolated from production
 
-Relevant when doing live auditor demos or testing delegation chains. Note: auditor agent no longer exists in the current archetype set. Would need to be recreated as a personality + project.
+Relevant when testing the pentest personality (created in Step 12). The test targets (DVWA, Juice Shop) are part of Step 12's test-against-practice-targets subtask. Note: the original auditor agent no longer exists -- the pentest personality now fills this role.
 
 ## CTF Wizard: Session Hardening
 

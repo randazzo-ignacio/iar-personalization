@@ -26,7 +26,7 @@ Seven fixed archetypes in `agents.d/archetypes/`. Each has `#+MODE:` metadata th
 
 | Archetype | Mode | Memory | Completion | Used By |
 |-----------|------|--------|------------|---------|
-| **interactive** | interactive | LOGS.md (last N lines) | None (human ends session) | mirror, davinci, colin |
+| **interactive** | interactive | LOGS.md (last N lines) | None (human ends session) | mirror, davinci, colin, pentest |
 | **autonomous** | autonomous | STATE.org (full) | LOOP_COMPLETE / CYCLE_COMPLETE | darwin |
 | **continuous** | continuous | STATE.org (full) | LOOP_COMPLETE (every tick) | gardener, librarian |
 | **agent-assistant** | delegated | None | Response is completion | agent-assistant personality (delegate tool default) |
@@ -43,6 +43,7 @@ The mapping is hardcoded in `iar-personality-archetype-map` in `iar-agent-loader
 | mirror | interactive | C-c a (interactive session) |
 | davinci | interactive | C-c a (interactive session) |
 | colin | interactive | C-c a (interactive session) |
+| pentest | interactive | C-c a (interactive session) |
 | agent-assistant | agent-assistant (delegated) | delegate tool (pipeline mode) |
 | implementer | implementer (delegated) | delegate tool (via agent-assistant) |
 | reviewer | reviewer (delegated) | delegate tool (via agent-assistant) |
@@ -69,6 +70,7 @@ Personalities live in `agents.d/personalities/<name>.org`. They are pure voice/c
 | **agent-assistant** | Pragmatic coordinator. Plans, delegates, evaluates. Does not do the work itself | agent-assistant |
 | **implementer** | Focused builder. Does the work, reports what was done. Does not question the task | implementer |
 | **reviewer** | Critical evaluator. Finds real problems, not style preferences. Structured review | reviewer |
+| **pentest** | Methodical security auditor | pentest |
 
 ## Projects
 
@@ -90,6 +92,7 @@ Projects live in `personalization/projects/<name>.org`. Each project file contai
 | **agent-assistant** | iar/ | delegate, read, list, exec | (none) | (none) | Sub-orchestration for delegation pipeline |
 | **implementer** | iar/ | list, read, write, append, exec, check_elisp, git | (none) | (none) | Focused code execution for delegation pipeline |
 | **reviewer** | iar/ | list, read, exec, check_elisp | (none) | (none) | Critical evaluation for delegation pipeline |
+| **pentest** | pentest/, iar/, infra/, user/ | Explicit #+TOOLS list + execute_code_remote (auto from #+CONTAINERS) | pentest | /var/home/nacho/repos/iar-infrastructure:rw | Pentesting and security research. Burp Suite via MCP, nmap/curl/python via pentest container. On-site audit deployment via Ansible. |
 
 The `iar--project-for-personality` function resolves projects: if a project file matching the personality name exists, it uses that. Otherwise, it falls back to the `iar` project.
 

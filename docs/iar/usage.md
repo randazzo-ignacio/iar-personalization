@@ -199,7 +199,7 @@ All keybindings are defcustoms in `configs/keybindings.el` and can be changed wi
 
 1. Start the container with `iar.sh --personalization ... --project iar`
 2. Emacs opens with gptel-mode active
-3. Load a personality: `C-c a mirror` (or darwin, gardener, librarian, davinci, colin)
+3. Load a personality: `C-c a mirror` (or darwin, gardener, librarian, davinci, colin, pentest)
 4. The assembly engine assembles the prompt from: interactive archetype + selected personality + iar project (which auto-loads iar/, infra/, user/ knowledge)
 5. Check prompt size: `C-c i` (monitor context window usage)
 6. Optionally load additional knowledge: `C-c k linux/` (concept knowledge bases)
@@ -209,6 +209,10 @@ All keybindings are defcustoms in `configs/keybindings.el` and can be changed wi
 ### Talking to Mirror
 
 The mirror agent is your thinking partner. The iar project auto-loads `docs/iar/` knowledge, so mirror already has the project documentation in its system prompt. Ask it about the codebase, design decisions, or to review a change you're planning. The mirror challenges your assumptions, pushes back on scope, and helps you think through problems.
+
+### Talking to Pentest
+
+The pentest agent is your security auditing partner. The pentest project auto-loads `docs/pentest/` knowledge (OWASP Top 10, PTES methodology) alongside `docs/iar/` project documentation. It has access to the pentest sidecar container for running nmap, curl, and other security tools via `execute_code_remote`. Use it for security assessments, vulnerability scanning, and penetration testing workflows.
 
 ### Running Autonomous Agents
 
