@@ -41,26 +41,41 @@ Step 14: i-ar-expansion/first-concept-and-authoring-workflow [DONE]
 ### Track C: Life Organization
 
 Step 16: i-ar-expansion/life-org-integration [DONE]
-  Life-org container image (hledger, Ruby, jq). Knowledge base (overview.md, hledger-reference.md). Project file with #+CONTAINERS: life-org. Container descriptions already registered. iar.sh already handles life-org target (network=none).
 
 ### Track D: Autonomous Quality
 
 Step 15: i-ar-expansion/gardener-guidelines-checker [DONE]
-  Guidelines checker module (init.d/agent/iar-guidelines-checker.el). Checks 9 rules across 46 source files. Gardener monitoring cycle updated with Phase 5 (guidelines check). Violations become tasks for darwin.
 
 ## Phase 2: Refactor (consolidation + coherence)
 
 After all Phase 1 features land. Clean up exploratory debt before piling more on.
 
-Step 17: refactor/consolidation-pass
-  - Audit all modules for coherence in implementation patterns
-  - Remove overly complex features that didn't earn their complexity
-  - Reduce repetition across modules
-  - Integrate wiki pipeline into i.ar (Rakefile reads from knowledge/ + docs/ + tasks/, post-receive hook)
-  - Enforce GUIDELINES.org compliance across codebase
-  - Consolidate exploratory code into clean architecture
+Step 17: refactor/consolidation-pass [IN PROGRESS]
+  Phases A-C complete (guidelines compliance, dead code removal, pattern consolidation).
+  Phase D (feature testing with e2e test agents) is next.
+  Phase E (wiki pipeline integration) remains.
+  Phase F (final verification) remains.
 
-  Finish line: codebase passes guidelines checker with zero violations, no dead code, no duplicated patterns that should be shared utilities.
+  Completed:
+  - Phase A: Guidelines compliance -- 0 violations across 45 files
+  - Phase B: Dead code removal -- removed personality-loader shim, 4 backward
+    compat aliases, 2 dead functions (guard-check-replace, audit-log-replace),
+    10 dead config defcustoms, 2 dead requires, 1 unused function
+  - Phase C: Pattern consolidation -- extracted 5 shared utilities into
+    iar-utils.el and iar-agent-utils.el, updated 8+ modules to use them
+  - E2E test framework created: test personality (one-shot), test-continuous
+    personality (autonomous), test project, 31-test plan, runner scripts
+
+  Remaining:
+  - Phase D: Feature testing (human + mirror). Run e2e tests, fix bugs found.
+    Known bugs to investigate: send_telegram hangs interactive agents,
+    async execute_code_local processes linger after Emacs exit.
+  - Phase E: Wiki pipeline integration (Rakefile, post-receive hook)
+  - Phase F: Final verification (tests pass, guidelines clean, docs updated)
+
+  Finish line: codebase passes guidelines checker with zero violations,
+  no dead code, no duplicated patterns that should be shared utilities,
+  e2e test agents pass, wiki pipeline integrated.
 
 ## Phase 3: Quality (test the final shape)
 
@@ -124,7 +139,12 @@ When working autonomously:
 
 ## Next Action
 
-Phase 1 is complete (Steps 9-16 all DONE).
+Step 17 is IN PROGRESS. Phases A-C complete. Next:
 
-Step 17: refactor/consolidation-pass
-Audit all modules for coherence, remove dead code, enforce GUIDELINES.org compliance, integrate wiki pipeline. Finish line: zero guidelines violations, no dead code, no duplicated patterns.
+Phase D: Feature testing with e2e test agents.
+  - Run test/integration/test-infra.sh (infrastructure safety net)
+  - Run test/integration/run-e2e.sh (e2e test agents)
+  - Fix bugs found (known: send_telegram hang, async process cleanup)
+  - Update test plan as needed
+
+Then Phase E (wiki pipeline) and Phase F (final verification).
