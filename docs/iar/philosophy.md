@@ -78,5 +78,12 @@ The file guard uses explicit tiers, not pattern interception. If self-modificati
 ### Why container isolation
 The container is the current security boundary. Read-only rootfs, dropped capabilities, preflight audit. Outside the container, the tools themselves become the permission model. The file guard was designed for this future -- it works without container isolation.
 
+### Why multi-container isolation
+Different tasks need different capabilities and different risk profiles. A pentest container needs outbound internet and security tools but should never touch personal data. A concept exploration container should have no network at all. Running these in the same container as the Emacs agent would require either granting excessive capabilities or implementing complex in-process isolation.
+
+The multi-container model solves this with physical separation: each purpose-specific container has its own filesystem, user namespace, and network policy. The Emacs container (where agents live) has no outbound internet. The pentest container has bridge networking but no personal data. The concepts container has no networking at all. The only shared surface is the workspace directory at `/workspace`.
+
+This is purpose-specific isolation: the security boundary is the container itself, not a pattern matcher or a permission flag inside a shared process. Each container type is purpose-built with only the tools it needs. The `#+CONTAINERS` project metadata declares which containers a project needs, and `iar.sh` manages their lifecycle.
+
 ### Why no cloud
 Cloud dependencies mean someone else controls your compute. For an AI agent framework that can modify its own code, send network requests, and execute arbitrary commands, cloud dependency is an unacceptable trust surface. Local LLMs on local hardware, connected via WireGuard, with no external API calls.

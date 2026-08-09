@@ -100,6 +100,16 @@ Not relevant with local-only setup. Becomes relevant when using cloud models reg
 
 **Status:** Implemented as Step 8. Three personality files created (agent-assistant, implementer, reviewer). Personality-to-archetype map updated with three new entries. Delegate tool updated: agent parameter is now optional, defaults to agent-assistant (pipeline mode). Tool description updated. Pre-existing bug fixed: `iar--project-for-personality` was using `user-emacs-directory` instead of `iar-personalization-path` for project file resolution. 541 tests pass.
 
+## Multi-Container Execution Framework (IMPLEMENTED)
+
+~~Purpose-specific sidecar containers for isolated execution environments. `execute_code_remote` tool for cross-container command execution. `#+CONTAINERS` project metadata. Remote debug containers via Ansible.~~
+
+**Status:** Implemented as Step 9. New `execute_code_remote` tool (`init.d/tools/code/execute_code_remote.el`) for local sidecar (`podman exec`) and remote SSH execution. New `iar-pentest` container image. `#+CONTAINERS` parsing in project parser and prompt assembly. `iar.sh` sidecar lifecycle management with shared workspace. `--no-containers` and `--container-image` flags. Ansible `iar-debug-container` role for remote debug containers. 568 tests pass (up from 557).
+
+This absorbed the following earlier ideas:
+- **execute-code-local-security**: Code execution isolation is now achieved via purpose-specific sidecar containers with physical separation, not in-process restrictions on `execute_code_local`.
+- **agent-ssh-read-only-access**: SSH-based remote execution is implemented via `execute_code_remote` with key-only auth and explicit argv (no shell injection). Remote debug containers use SSH key-only auth with unprivileged users.
+
 ## Auditor: Create Test Target for Non-Destructive Demos
 
 - Set up a local intentionally-vulnerable app (e.g., DVWA or custom)

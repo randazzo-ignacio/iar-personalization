@@ -16,6 +16,7 @@
 | Tool | Args | Description |
 |------|------|-------------|
 | `execute_code_local` | `command` (required) | Run bash command in the container. Uses `:connection-type 'pipe` (no pty allocation). Full toolset available: bash, dig, nmap, openssl, python3, jq, whois, traceroute, tcpdump, rg, git, curl, find, gawk, sed, grep, gcc, make, tar, gzip, unzip. Audit-logged via `iar--audit-log-exec`. |
+| `execute_code_remote` | `target` (required), `command` (required) | Run bash command in a sidecar container or remote host. **Local targets**: resolved from `IAR_CONTAINER_<target>` env var (e.g., `IAR_CONTAINER_PENTEST`), executed via `podman exec`. **Remote targets**: resolved from `iar-remote-targets` defcustom or `IAR_REMOTE_TARGETS` env var, executed via SSH over WireGuard using `make-process` with explicit argv (no shell injection surface). SSH uses key-only auth. Target validation against buffer-local `iar--current-containers`. Output sanitization via `iar--sanitize-exec-output`. Async tool. Audit-logged. Provide symbol: `iar-tool--execute-code-remote`. |
 
 ### Code Quality (tools/code/)
 
@@ -88,6 +89,8 @@ This gives darwin filesystem, code execution, task management, git, and roadmap 
 
 If `#+TOOLS` is absent from a project file, all registered tools are available (backward compat).
 
+**Container-gated tool:** `execute_code_remote` is gated by `#+CONTAINERS` metadata, not `#+TOOLS`. When a project declares `#+CONTAINERS: pentest`, the `execute_code_remote` tool is automatically registered by `iar--filter-tools` (which accepts an optional `containers` argument). It does not need to be listed in `#+TOOLS`. Available container targets are injected into the system prompt via `iar--format-containers`.
+
 See `tool_gating.md` for the planned `--enable-code-exec`, `--enable-elisp`, and `--danger-zone` flags that will add container-level tool gating on top of the project-level gating.
 
 ## File Guard Protection
@@ -114,6 +117,10 @@ The file guard (`iar-file-guard.el`) intercepts `write_file` and `append_file` c
 - `.git/hooks/` directory (append not allowed)
 
 Self-modification mode is controlled by the `EMACBOROS_SELF_MODIFICATION` environment variable (set via `--self-modification` flag on `iar.sh`). When unset, all guards are active. When set to `1`, tier 2 guards are relaxed but tier 1 (archetype/personality/cycle files, base context, history logs, LOGS.md, STATE.org) remains enforced.
+
+### Multi-Container Physical Separation
+
+Sidecar containers (pentest, concepts, life-org, debug) provide physical filesystem isolation -- they do not share the Emacs container's filesystem except for the shared workspace at `/workspace`. This means file guard is not the security boundary for sidecar execution; physical separation is. Each sidecar container type has its own image, user namespace, and network policy. No personalization data, prompts, or Emacs configuration is mounted into sidecars.
 
 ## Audit Logging
 

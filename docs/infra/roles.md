@@ -19,6 +19,7 @@ Every Ansible role in the infrastructure repo, what it does, and where it runs.
 | node-exporter | all hosts | Prometheus node_exporter (host metrics) |
 | portfolio-page | rammstein | Personal portfolio static site deployment |
 | static-page | daftpunk | i.ar landing page static site deployment |
+| iar-debug-container | debug_container_hosts (sophon, rammstein) | Debug container deployment for remote i.ar agent access |
 
 ---
 
@@ -332,3 +333,32 @@ Every Ansible role in the infrastructure repo, what it does, and where it runs.
 
 **Key variables:**
 - `static_page_root` (/var/www/emacboros)
+
+---
+
+## iar-debug-container
+
+**Runs on:** debug_container_hosts group (sophon, rammstein)
+
+**What it does:**
+- Deploys a debug container on infrastructure hosts for remote i.ar agent access
+- Container has host root filesystem mounted read-only at `/host` (for inspection)
+- SSH key-only authentication (no password auth)
+- Runs as unprivileged `debug-agent` user
+- Accessible over WireGuard for remote debugging sessions
+- Includes a template for pentest container deployment (on-site audit deployment)
+
+**Templates:**
+- Debug container systemd service template
+- Pentest container deployment template (for on-site security audits)
+
+**Key variables:**
+- `debug_container_image` -- Container image for debug container
+- `debug_agent_user` (debug-agent) -- Unprivileged user inside the container
+- `debug_container_host_mount` (/host) -- Host root filesystem mount point (read-only)
+
+**Playbook:** `playbooks/debug-containers.yml` -- Manages debug container deployment across `debug_container_hosts`.
+
+**Inventory group:** `debug_container_hosts` -- Defines which hosts run debug containers. Currently includes sophon and rammstein.
+
+**On-Site Audit Deployment:** The role includes a template for deploying the pentest container image on-site for security audits. The pentest container has outbound internet access, runs as unprivileged user, and is isolated from personal data. This enables agents to run security assessments against on-site infrastructure via `execute_code_remote` over WireGuard SSH.

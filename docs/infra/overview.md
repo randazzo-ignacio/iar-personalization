@@ -65,6 +65,7 @@ Hosts can belong to multiple groups. Adding a host to a group auto-includes it i
 | `ai_playground` | greenday | Docker + AI agent environment |
 | `ollama_hosts` | daftpunk, sophon | Ollama instances |
 | `frigate_hosts` | sophon | Frigate NVR |
+| `debug_container_hosts` | sophon, rammstein | i.ar debug container deployment for remote agent access |
 
 ## Variable Hierarchy (DRY)
 
@@ -130,3 +131,12 @@ Ollama never binds to 0.0.0.0 on production hosts. WireGuard IP only = no public
 8 cameras (3 interior, 5 exterior) connected via RTSP. Camera IPs are in host_vars; credentials come from vault. Frigate runs via Podman Compose with NVIDIA TensorRT for object detection. Web UI at port 8971, proxied through rammstein as camaras.randazzo.ar.
 
 Retention: continuous 3 days, motion 7 days, alerts/detections 30 days.
+
+## i.ar Debug Containers
+
+Debug containers are deployed on infrastructure hosts via the `iar-debug-container` Ansible role. They provide remote i.ar agent access for debugging sessions over WireGuard.
+
+- **Hosts:** sophon, rammstein (defined in `debug_container_hosts` inventory group)
+- **Playbook:** `playbooks/debug-containers.yml`
+- **Container features:** Host root filesystem mounted read-only at `/host`, SSH key-only auth, unprivileged `debug-agent` user
+- **On-site audit:** The role includes a template for deploying the pentest container image on-site for security assessments. The pentest container has outbound internet access and is isolated from personal data. Agents can run commands in the pentest container via `execute_code_remote` over WireGuard SSH.

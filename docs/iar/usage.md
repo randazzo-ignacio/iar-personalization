@@ -102,6 +102,32 @@ cd i.ar
 One-shot mode sends a single instruction, the agent uses tools as needed, produces a final response (between delimiters), and exits. Stdout contains only the final response -- diagnostics go to stderr and the log file.
 
 
+### Multi-Container Usage
+
+When a project declares `#+CONTAINERS`, `iar.sh` automatically starts the specified sidecar containers before launching Emacs. The shared workspace is mounted at `/workspace` in both the Emacs container and all sidecars.
+
+```bash
+# Run with sidecar containers (project must have #+CONTAINERS in its project file):
+./utils/iar.sh --personalization ~/repos/iar-personalization --project iar
+
+# Force-disable sidecar containers even if project declares them:
+./utils/iar.sh --personalization ~/repos/iar-personalization --project iar --no-containers
+
+# Override the pentest container image:
+./utils/iar.sh --personalization ~/repos/iar-personalization --project iar   --container-image pentest:myregistry/iar-pentest:latest
+
+# Run one-shot with sidecar containers:
+./utils/iar.sh --one-shot --personalization ~/repos/iar-personalization   --project iar --agent mirror   --prompt "Run nmap scan against 10.66.0.3 from the pentest container"   --model granite4.1:8b-q8_0 --ctx 131072
+```
+
+Inside Emacs, agents use the `execute_code_remote` tool to run commands in sidecar containers:
+
+```
+execute_code_remote(target="pentest", command="nmap -sV 10.66.0.3")
+```
+
+Local targets (sidecar containers on the same host) are resolved from `IAR_CONTAINER_<target>` env vars and executed via `podman exec`. Remote targets (debug containers on other hosts) are resolved from `iar-remote-targets` or `IAR_REMOTE_TARGETS` and executed via SSH over WireGuard.
+
 ### Status Dashboard
 
 ```bash
@@ -139,6 +165,8 @@ One-shot mode sends a single instruction, the agent uses tools as needed, produc
 | `--cooldown SECONDS` | No (loop) | Seconds to wait between cycles (default: 60) |
 | `--max-failures N` | No (loop) | Max consecutive failures before stopping (default: 5) |
 | `--timeout SECONDS` | No (loop, one-shot) | Per-cycle/one-shot timeout (default: 7200 = 120 min) |
+| `--no-containers` | No | Force-disable sidecar containers. Overrides `#+CONTAINERS` from project file. |
+| `--container-image target:image` | No | Override container image for a specific target. Example: `--container-image pentest:myregistry/iar-pentest:latest`. Can be specified multiple times. |
 
 Environment variables:
 - `EMACBOROS_OLLAMA_HOST` -- Default Ollama host:port
@@ -147,6 +175,9 @@ Environment variables:
 - `AGENT_TELEGRAM_BOT_TOKEN` -- Telegram bot token (loop mode notifications)
 - `AGENT_TELEGRAM_CHAT_ID` -- Telegram chat ID (loop mode notifications)
 - `IAR_ONE_SHOT_PROMPT` -- One-shot instruction text (set by --prompt flag)
+- `IAR_CONTAINER_<TARGET>` -- Container ID for sidecar target (e.g., `IAR_CONTAINER_PENTEST`). Set by `iar.sh` for each sidecar started.
+- `IAR_SHARED_WORKSPACE` -- Path to shared workspace directory, mounted at `/workspace` in Emacs + all sidecars.
+- `IAR_REMOTE_TARGETS` -- Comma-separated list of remote SSH targets (alternative to `iar-remote-targets` defcustom).
 
 ## Inside Emacs
 
@@ -238,12 +269,14 @@ A project file (`projects/<name>.org`) defines what an agent works on:
 ```
 #+KNOWLEDGE: iar/ infra/ user/
 #+TOOLS: list_directory read_file write_file append_file execute_code_local check_elisp read_task create_task write_subtask remove_task read_history send_telegram git_commit delegate reload_os reload_agent read_knowledge read_roadmap write_roadmap
+#+CONTAINERS: pentest
 #+MOUNTS: /var/home/nacho/repos/iar-infrastructure:rw
 #+OBJECTIVE: General-purpose i.ar development, infrastructure management, and security research.
 ```
 
 - `#+KNOWLEDGE:` -- Space-separated list of doc subdirectory labels to auto-load
 - `#+TOOLS:` -- Space-separated list of tool names to register (if absent, all tools)
+- `#+CONTAINERS:` -- Space-separated list of sidecar container targets to start (e.g., `pentest`). When present, `execute_code_remote` is automatically registered. If absent, no sidecar containers are started.
 - `#+MOUNTS:` -- Space-separated `path:mode` pairs (mode is `rw` or `ro`, default `rw`)
 - `#+OBJECTIVE:` -- Free-text scope/goal injected into the prompt
 

@@ -6,7 +6,7 @@ Every agent instance is assembled from three independent primitives:
 
 1. **Archetype** (behavioral mode) -- from `agents.d/archetypes/<name>.org`. Defines HOW the agent behaves: interactive, autonomous, continuous, or delegated. Determines memory injection mode and completion semantics. Has `#+MODE:` metadata.
 2. **Personality** (voice/character) -- from `agents.d/personalities/<name>.org`. Defines WHO the agent is: its tone, perspective, blind spots, guiding principles. Pure character -- no tools, no knowledge, no behavioral rules.
-3. **Project** (knowledge/tools/objective) -- from `personalization/projects/<name>.org`. Defines WHAT the agent works on: which doc labels to auto-load (`#+KNOWLEDGE`), which tools to register (`#+TOOLS`), what host paths to mount (`#+MOUNTS`), and a free-text objective (`#+OBJECTIVE`).
+3. **Project** (knowledge/tools/objective) -- from `personalization/projects/<name>.org`. Defines WHAT the agent works on: which doc labels to auto-load (`#+KNOWLEDGE`), which tools to register (`#+TOOLS`), which sidecar containers to start (`#+CONTAINERS`), what host paths to mount (`#+MOUNTS`), and a free-text objective (`#+OBJECTIVE`).
 
 The assembly engine (`iar-prompt-assembly.el`) combines these into a single system prompt. Assembly order:
 
@@ -18,7 +18,7 @@ The assembly engine (`iar-prompt-assembly.el`) combines these into a single syst
 6. Memory injection (mode-based: LOGS.md or STATE.org)
 7. Mount info
 
-Tool gating is per-project: `#+TOOLS` in the project file filters which tools from `gptel-tools` are registered for that agent. If `#+TOOLS` is absent, all tools are registered.
+Tool gating is per-project: `#+TOOLS` in the project file filters which tools from `gptel-tools` are registered for that agent. If `#+TOOLS` is absent, all tools are registered. Container gating is also per-project: `#+CONTAINERS` declares which sidecar containers to start. When present, the `execute_code_remote` tool is automatically registered (not listed in `#+TOOLS`) and available targets are injected into the system prompt.
 
 ## Archetypes
 
@@ -76,6 +76,7 @@ Projects live in `personalization/projects/<name>.org`. Each project file contai
 
 - `#+KNOWLEDGE:` -- space-separated list of doc subdirectory labels to auto-load (e.g., `iar/`, `infra/`, `user/`)
 - `#+TOOLS:` -- space-separated list of tool names to register. If absent, all tools registered
+- `#+CONTAINERS:` -- space-separated list of sidecar container targets to start (e.g., `pentest`). When present, `execute_code_remote` is automatically registered and available targets are injected into the system prompt. If absent, no sidecar containers are started and `execute_code_remote` is not available.
 - `#+MOUNTS:` -- space-separated list of `path:mode` pairs (e.g., `/var/home/nacho/repos/i.ar:rw`). If absent, no project-specific mounts
 - `#+OBJECTIVE:` -- free-text scope/goal injected into the prompt
 

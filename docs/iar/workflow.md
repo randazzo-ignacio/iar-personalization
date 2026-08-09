@@ -57,6 +57,11 @@ This provides automated drift detection between code and documentation.
 | Module moved to different subdirectory | `modules.md` |
 | New or removed tool | `tools.md` + `modules.md` |
 | Tool behavior change | `tools.md` |
+| New or removed container image | `architecture.md` + `modules.md` |
+| New or removed sidecar container target | `architecture.md` + `agents.md` + `tool_gating.md` |
+| Container network policy change | `architecture.md` + `tool_gating.md` |
+| `#+CONTAINERS` metadata change in projects | `agents.md` + `architecture.md` + `usage.md` |
+| Remote debug container deployment change | `architecture.md` + `infra/roles.md` + `infra/overview.md` |
 | New or removed archetype | `agents.md` + `modules.md` |
 | New or removed personality | `agents.md` |
 | New or removed project | `agents.md` + `architecture.md` |
