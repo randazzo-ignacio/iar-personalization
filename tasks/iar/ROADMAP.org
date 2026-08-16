@@ -8,41 +8,29 @@ Integrate iar.sh one-shot agent scans into SecPlatform so users can trigger pent
 
 Design doc: docs/iar-prod/agent-integration.md
 
-### Step 20: secplatform/agent-runner
+### Step 20: secplatform/agent-runner [DONE]
 
-Build the host-side agent-runner service that bridges the BFF and iar.sh.
+Built the host-side agent-runner Python HTTP service. Stdlib only, no deps.
 
-Dependencies: none (can start immediately).
+### Step 21: secplatform/bff-agent-routes [DONE]
 
-### Step 21: secplatform/bff-agent-routes
+BFF routes for creating agent scans and polling status. Prompt construction, DB migration (agent_job_id column), agent-runner config in compose env.
 
-Add BFF routes for creating agent scans and polling status. Includes prompt construction and DB migration.
+### Step 22: secplatform/parser-agent [DONE]
 
-Dependencies: Step 20 (agent-runner must exist for BFF to call).
+vuln-parser agent personality (one-shot, strict JSON output). Project file + agent-loader mapping.
 
-### Step 22: secplatform/parser-agent
+### Step 23: secplatform/frontend-agent-scan [DONE]
 
-Create a new agent personality that parses raw pentest output into structured JSON.
+Frontend UI: agent scan modal (scan type, depth, focus, rate limit), status polling, results display.
 
-Dependencies: none (can be built in parallel with Step 20-21, but needed for end-to-end testing).
+### Step 24: secplatform/ansible-agent-runner [DONE]
 
-### Step 23: secplatform/frontend-agent-scan
+Ansible role updated: deploy agent-runner.py, create systemd service, vault template, host_vars.
 
-Add frontend UI for triggering agent scans and displaying results.
+### Step 25: secplatform/e2e-test [PENDING]
 
-Dependencies: Step 21 (BFF routes must exist).
-
-### Step 24: secplatform/ansible-agent-runner
-
-Update the Ansible secplatform role to deploy the agent-runner as a systemd service.
-
-Dependencies: Step 20 (agent-runner must be built first).
-
-### Step 25: secplatform/e2e-test
-
-End-to-end test: trigger scan from frontend, verify agent runs, verify results in DB.
-
-Dependencies: Steps 20-24 all complete.
+End-to-end test: trigger scan from frontend, verify agent runs, verify results in DB. Manual testing after deploy.
 
 ## Previous Roadmap (Remaining Items)
 
@@ -56,7 +44,7 @@ Phases A-C complete. Remaining:
 
 ## Post-Alpha Assessment
 
-After Step 17 and Steps 20-25 are complete: Final review to verify all alpha capabilities are fully implemented plus the SecPlatform integration. Declare alpha and begin next roadmap.
+After Step 17 and Step 25 are complete: Final review to verify all alpha capabilities are fully implemented plus the SecPlatform integration. Declare alpha and begin next roadmap.
 
 ## Next Roadmap (After Alpha)
 
@@ -85,6 +73,11 @@ Step 15: i-ar-expansion/gardener-guidelines-checker [DONE]
 Step 16: i-ar-expansion/life-org-integration [DONE]
 Step 18: agent-architecture/coverage-to-100 [DONE]
 Step 19: i-ar-expansion/reduce-prompt-tokens [DONE]
+Step 20: secplatform/agent-runner [DONE]
+Step 21: secplatform/bff-agent-routes [DONE]
+Step 22: secplatform/parser-agent [DONE]
+Step 23: secplatform/frontend-agent-scan [DONE]
+Step 24: secplatform/ansible-agent-runner [DONE]
 
 ## Removed from Roadmap
 
