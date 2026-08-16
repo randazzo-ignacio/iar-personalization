@@ -2,102 +2,64 @@
 
 No dates. Dependencies and ordering only. Completion is implicit: if a task directory exists, it's not done. If it's gone (removed via remove_task), it's done.
 
-## Alpha Goal
+## Current Priority: SecPlatform Agent Integration
 
-i.ar alpha = the platform works for both the long-term-plan track (concept library, life-org) AND the pentesting track. Feature freeze is in effect. No new features enter the roadmap without explicit rejection of alternatives. New ideas go to future_ideas.md.
+Integrate iar.sh one-shot agent scans into SecPlatform so users can trigger pentest agent scans from the frontend. Results parsed back into the vulnerabilities table.
 
-**After the current roadmap is complete:** One final assessment pass to verify all alpha capabilities are implemented. Then the next roadmap is the long-term plan integration (concept library authoring, degree summarization, life-org workflows).
+Design doc: docs/iar-prod/agent-integration.md
 
-## Alpha Capabilities
+### Step 20: secplatform/agent-runner
 
-| # | Capability | Use Cases | Steps |
-|---|-----------|-----------|-------|
-| 1 | Isolated Code Execution | Pentesting, simulation, on-site audit, general compute | 9 |
-| 2 | Remote Infrastructure Inspection | Debug own servers, diagnose client infra | 9 |
-| 3 | External Tool Integration | Burp Suite, future MCP tools | 10 |
-| 4 | Rate-Limited Execution | Stealth scanning, API throttling | 11 |
-| 5 | Pentesting Workflow | Target scoping, scanning, findings, on-site audit | 12 |
-| 6 | Knowledge Base Authoring & Verification | Agent assists writing concepts, runs simulations, verifies tests | 13-14 |
-| 7 | Autonomous Code Quality | Gardener finds violations, darwin fixes | 15 |
-| 8 | Life Organization Integration | hledger queries, inventory checks, routine surfacing via natural language | 16 |
-| 9 | Code Quality & Optimization | Refactor, test coverage, prompt size | 17-19 |
+Build the host-side agent-runner service that bridges the BFF and iar.sh.
 
-## Phase 1: Features (exploratory, fast, don't fight every detail)
+Dependencies: none (can start immediately).
 
-Features are added without a solid architectural place in mind. This is fine -- exploratory nature allows rapid iteration. Coherence comes in Phase 2.
+### Step 21: secplatform/bff-agent-routes
 
-### Track A: Infrastructure & Security
+Add BFF routes for creating agent scans and polling status. Includes prompt construction and DB migration.
 
-Step 9: i-ar-expansion/multi-container-execution [DONE]
-Step 10: i-ar-expansion/mcp-integration [DONE]
-Step 11: i-ar-expansion/rate-limiter [DONE]
-Step 12: i-ar-expansion/pentesting-suite [DONE]
+Dependencies: Step 20 (agent-runner must exist for BFF to call).
 
-### Track B: Knowledge & Concepts
+### Step 22: secplatform/parser-agent
 
-Step 13: i-ar-expansion/concepts-container-image [DONE]
-Step 14: i-ar-expansion/first-concept-and-authoring-workflow [DONE]
+Create a new agent personality that parses raw pentest output into structured JSON.
 
-### Track C: Life Organization
+Dependencies: none (can be built in parallel with Step 20-21, but needed for end-to-end testing).
 
-Step 16: i-ar-expansion/life-org-integration [DONE]
+### Step 23: secplatform/frontend-agent-scan
 
-### Track D: Autonomous Quality
+Add frontend UI for triggering agent scans and displaying results.
 
-Step 15: i-ar-expansion/gardener-guidelines-checker [DONE]
+Dependencies: Step 21 (BFF routes must exist).
 
-## Phase 2: Refactor (consolidation + coherence)
+### Step 24: secplatform/ansible-agent-runner
 
-After all Phase 1 features land. Clean up exploratory debt before piling more on.
+Update the Ansible secplatform role to deploy the agent-runner as a systemd service.
 
-Step 17: refactor/consolidation-pass [IN PROGRESS]
-  Phases A-C complete (guidelines compliance, dead code removal, pattern consolidation).
-  Phase D (interactive feature testing) is in progress.
-  Phase E (wiki pipeline integration) remains.
-  Phase F (final verification) remains.
+Dependencies: Step 20 (agent-runner must be built first).
 
-  Completed:
-  - Phase A: Guidelines compliance -- 0 violations across 45 files
-  - Phase B: Dead code removal -- removed personality-loader shim, 4 backward
-    compat aliases, 2 dead functions (guard-check-replace, audit-log-replace),
-    10 dead config defcustoms, 2 dead requires, 1 unused function
-  - Phase C: Pattern consolidation -- extracted 5 shared utilities into
-    iar-utils.el and iar-agent-utils.el, updated 8+ modules to use them
-  - E2E test framework created: test personality (one-shot), test-continuous
-    personality (autonomous), test project, 31-test plan, test-infra.sh
-  - Bug fixes: void-variable self_modification (unescaped quotes in docstring),
-    gptel-request.el missing paren (from Jul 12 modification)
-  - Deleted run-e2e.sh: e2e testing should be interactive, not script-orchestrated
+### Step 25: secplatform/e2e-test
 
-  Remaining:
-  - Phase D: Interactive feature testing (human + mirror). Work through the
-    test plan in docs/test/plan.md interactively. Fix bugs found.
-    Known bugs to investigate: send_telegram hangs interactive agents,
-    async execute_code_local processes linger after Emacs exit.
-  - Phase E: Wiki pipeline integration (Rakefile, post-receive hook)
-  - Phase F: Final verification (tests pass, guidelines clean, docs updated)
+End-to-end test: trigger scan from frontend, verify agent runs, verify results in DB.
 
-  Finish line: codebase passes guidelines checker with zero violations,
-  no dead code, no duplicated patterns that should be shared utilities,
-  interactive feature tests pass, wiki pipeline integrated.
+Dependencies: Steps 20-24 all complete.
 
-## Phase 3: Quality (test the final shape)
+## Previous Roadmap (Remaining Items)
 
-Step 18: agent-architecture/coverage-to-100 [DONE]
-  100% coverage deemed unviable for now. Coverage threshold raised from 80% to 85%.
-  Current coverage: 85.6% (5043/5888 forms). Coverage runner: test/run-coverage.el.
-  All new features must maintain 85% coverage going forward.
+### Step 17: refactor/consolidation-pass [IN PROGRESS]
 
-Step 19: i-ar-expansion/reduce-prompt-tokens [DONE]
-  Audited base_context.org, compressed LOGS.md injection, tightened tool descriptions.
+Phases A-C complete. Remaining:
+
+- Phase D: Interactive feature testing (human + mirror). Work through test plan in docs/test/plan.md. Known bugs: send_telegram hangs, async process cleanup.
+- Phase E: Wiki pipeline integration (Rakefile, post-receive hook).
+- Phase F: Final verification (tests pass, guidelines clean, docs updated).
 
 ## Post-Alpha Assessment
 
-After Step 17 is complete: Final review to verify all 9 alpha capabilities are fully implemented. If gaps found, add targeted steps. If complete, declare alpha and begin next roadmap.
+After Step 17 and Steps 20-25 are complete: Final review to verify all alpha capabilities are fully implemented plus the SecPlatform integration. Declare alpha and begin next roadmap.
 
 ## Next Roadmap (After Alpha)
 
-The next roadmap is the long-term plan integration:
 - Concept library: degree summarization (40 subjects, starting with pure math)
 - Long-term plan Phase 5: Ruby-Godot bridge, co-simulation framework
 - Pentesting automation: bounty hunting with autonomous agents
@@ -121,39 +83,24 @@ Step 13: i-ar-expansion/concepts-container-image [DONE]
 Step 14: i-ar-expansion/first-concept-and-authoring-workflow [DONE]
 Step 15: i-ar-expansion/gardener-guidelines-checker [DONE]
 Step 16: i-ar-expansion/life-org-integration [DONE]
-Step 17: refactor/consolidation-pass [IN PROGRESS]
 Step 18: agent-architecture/coverage-to-100 [DONE]
 Step 19: i-ar-expansion/reduce-prompt-tokens [DONE]
 
 ## Removed from Roadmap
 
-- knowledge-system/phase-2-infrastructure-flag -- Absorbed by #+MOUNTS in project files. Dead idea.
-- knowledge-system/phase-4-wiki-pipeline -- Absorbed into Step 17 (refactor). Wiki integration is part of the consolidation pass.
-- knowledge-system/phase-5-simulation-tools -- Renumbered to Step 13 (concepts container image).
-- i-ar-expansion/graphical-emacs-in-container -- QoL improvement, not a feature. Not on the critical path.
-- i-ar-expansion/execute-code-local-security -- Absorbed into Step 9 (multi-container-execution). Physical filesystem separation eliminates the file guard bypass problem.
-- i-ar-expansion/agent-ssh-read-only-access -- Absorbed into Step 9 (multi-container-execution). Remote debug containers replace the SSH user + sudo allowlist approach.
+- knowledge-system/phase-2-infrastructure-flag -- Absorbed by #+MOUNTS in project files.
+- knowledge-system/phase-4-wiki-pipeline -- Absorbed into Step 17.
+- knowledge-system/phase-5-simulation-tools -- Renumbered to Step 13.
+- i-ar-expansion/graphical-emacs-in-container -- QoL, not on critical path.
+- i-ar-expansion/execute-code-local-security -- Absorbed into Step 9.
+- i-ar-expansion/agent-ssh-read-only-access -- Absorbed into Step 9.
 
 ## Cycle Guidelines for Continuous Agents
 
 When working autonomously:
 1. read_roadmap to get this file
-2. Walk Phase 1 in step order. For each step, read_task on the path to check if it still exists
+2. Walk the steps in order. For each step, read_task on the path to check if it exists
 3. If the task directory exists, it's not done -- work on it
 4. If the task directory is gone, it's done -- move to the next step
 5. One task per cycle. Small, deliberate changes.
 6. When a task is complete: remove_task, log to HISTORY.log, end with LOOP_COMPLETE
-
-## Next Action
-
-Step 17 is IN PROGRESS. Phases A-C complete. Steps 18-19 done. Next:
-
-Phase D: Interactive feature testing.
-  - Run test/integration/test-infra.sh (infrastructure safety net)
-  - Work through docs/test/plan.md interactively (load test personality, exercise each tool)
-  - Fix bugs found (known: send_telegram hang, async process cleanup)
-  - Update test plan as needed
-
-Then Phase E (wiki pipeline) and Phase F (final verification).
-
-After Step 17 is complete: Post-alpha assessment, then declare alpha.
