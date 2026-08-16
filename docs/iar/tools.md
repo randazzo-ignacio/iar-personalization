@@ -58,7 +58,7 @@
 
 | Tool | Args | Description |
 |------|------|-------------|
-| `delegate` | `agent` (required), `task` (required), `context` (optional), `timeout` (optional) | Spawn sub-agent with specific profile. Async, returns final response as tool result. Default timeout 600s. Resolves archetype and project from personality name, assembles prompt via `iar--assemble-prompt`, applies tool gating from project `#+TOOLS`. Result extraction via `=== DELEGATION RESULT ===` marker -- only the sub-agent's final summary is returned, not raw tool output. |
+| `delegate` | `agent` (optional, defaults to agent-assistant), `task` (required), `context` (optional), `timeout` (optional) | Spawn sub-agent with specific profile. Async, returns final response as tool result. Default timeout 600s. Resolves archetype and project from personality name, assembles prompt via `iar--assemble-prompt`, applies tool gating from project `#+TOOLS`. Result extraction via `=== DELEGATION RESULT ===` marker -- only the sub-agent final summary is returned, not raw tool output. Completion hook detects marker in text-only responses (no tools called) to complete simple tasks without re-prompting loop. |
 
 **STATUS:** Matrix server (daftpunk) was killed. These tools are dead unless Matrix is redeployed.
 ### Matrix Communication (tools/matrix/)
@@ -73,7 +73,7 @@
 
 | Tool | Args | Description |
 |------|------|-------------|
-| `send_telegram` | `message` (required) | Send Telegram notification via Bot API. Async tool. Message prefixed with `[AgentName]` via `iar--get-agent-name`. Credentials from `AGENT_TELEGRAM_BOT_TOKEN` and `AGENT_TELEGRAM_CHAT_ID` env vars. Uses curl POST with 10s timeout. Audit-logged. |
+| `send_telegram` | `message` (required) | Send Telegram notification via Bot API. Async tool (synchronous curl internally, callback-based from gptel perspective). Message prefixed with `[AgentName]` via `iar--get-agent-name`. Credentials from `AGENT_TELEGRAM_BOT_TOKEN` and `AGENT_TELEGRAM_CHAT_ID` env vars. Uses `call-process` with curl (10s timeout, 5s connect timeout). Audit-logged. |
 
 ### Git (tools/git/)
 
