@@ -52,7 +52,7 @@ After all Phase 1 features land. Clean up exploratory debt before piling more on
 
 Step 17: refactor/consolidation-pass [IN PROGRESS]
   Phases A-C complete (guidelines compliance, dead code removal, pattern consolidation).
-  Phase D (feature testing with e2e test agents) is next.
+  Phase D (interactive feature testing) is in progress.
   Phase E (wiki pipeline integration) remains.
   Phase F (final verification) remains.
 
@@ -64,10 +64,14 @@ Step 17: refactor/consolidation-pass [IN PROGRESS]
   - Phase C: Pattern consolidation -- extracted 5 shared utilities into
     iar-utils.el and iar-agent-utils.el, updated 8+ modules to use them
   - E2E test framework created: test personality (one-shot), test-continuous
-    personality (autonomous), test project, 31-test plan, runner scripts
+    personality (autonomous), test project, 31-test plan, test-infra.sh
+  - Bug fixes: void-variable self_modification (unescaped quotes in docstring),
+    gptel-request.el missing paren (from Jul 12 modification)
+  - Deleted run-e2e.sh: e2e testing should be interactive, not script-orchestrated
 
   Remaining:
-  - Phase D: Feature testing (human + mirror). Run e2e tests, fix bugs found.
+  - Phase D: Interactive feature testing (human + mirror). Work through the
+    test plan in docs/test/plan.md interactively. Fix bugs found.
     Known bugs to investigate: send_telegram hangs interactive agents,
     async execute_code_local processes linger after Emacs exit.
   - Phase E: Wiki pipeline integration (Rakefile, post-receive hook)
@@ -75,7 +79,7 @@ Step 17: refactor/consolidation-pass [IN PROGRESS]
 
   Finish line: codebase passes guidelines checker with zero violations,
   no dead code, no duplicated patterns that should be shared utilities,
-  e2e test agents pass, wiki pipeline integrated.
+  interactive feature tests pass, wiki pipeline integrated.
 
 ## Phase 3: Quality (test the final shape)
 
@@ -141,9 +145,9 @@ When working autonomously:
 
 Step 17 is IN PROGRESS. Phases A-C complete. Next:
 
-Phase D: Feature testing with e2e test agents.
+Phase D: Interactive feature testing.
   - Run test/integration/test-infra.sh (infrastructure safety net)
-  - Run test/integration/run-e2e.sh (e2e test agents)
+  - Work through docs/test/plan.md interactively (load test personality, exercise each tool)
   - Fix bugs found (known: send_telegram hang, async process cleanup)
   - Update test plan as needed
 
